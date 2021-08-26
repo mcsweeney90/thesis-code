@@ -10,7 +10,6 @@ These folders contain the source code used to generate results presented and dis
 
 Contains graph topologies, saved and loaded using the Python `dill` package, which are used by code in all of the above chapter folders.
 
-
 ## License
 
 This project is licensed under the GPL-3.0 License - see [LICENSE](LICENSE) for details.
