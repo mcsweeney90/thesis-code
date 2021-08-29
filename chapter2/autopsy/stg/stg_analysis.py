@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis of autopsy method for STG.
+Analysis of autopsy method for STG graphs.
 """
 
 import pathlib
@@ -30,13 +30,12 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
-size = 1000
+size = 100
 df = pd.read_csv('stg{}.csv'.format(size))
 
 summary_path = "summaries/n{}".format(size)
@@ -89,24 +88,23 @@ def summarize(data, save_dest):
 # loc = "{}/all.txt".format(summary_path)
 # summarize(data=df, save_dest=loc)
 
-# # By platform.
+# # # By platform.
 # for s in ngpus:
 #     sdf = df.loc[(df['s'] == s)]  
 #     loc = "{}/s{}.txt".format(summary_path, s)
 #     summarize(data=sdf, save_dest=loc)
     
-# # By tile size.
-# for ccr in ccrs:
-#     sdf = df.loc[(df['CCR'] == ccr)]   
-#     loc = "{}/ccr{}.txt".format(summary_path, ccr)
+# # # By CCR.
+# for b in ccrs:
+#     sdf = df.loc[(df['CCR'] == b)]   
+#     loc = "{}/b{}.txt".format(summary_path, b)
 #     summarize(data=sdf, save_dest=loc)
 
-# # By platform and tile size.  
-# for s in ngpus:
-#     for ccr in ccrs:
-#         sdf = df.loc[(df['s'] == s) & (df['CCR'] == ccr)]   
-#         loc = "{}/s{}_ccr{}.txt".format(summary_path, s, ccr)
-#         summarize(data=sdf, save_dest=loc)
+# # # By platform and tile size.  
+# for s, b in product(ngpus, ccrs):
+#     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]   
+#     loc = "{}/s{}_b{}.txt".format(summary_path, s, b)
+#     summarize(data=sdf, save_dest=loc)
         
 # =============================================================================
 # Plots.
@@ -135,14 +133,13 @@ def plot_reductions(data, name, ylabel=True, dotcolor='#988ED5'):
     ax.legend(handles, labels, handlelength=0, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white', framealpha=1.0)
     
     plt.savefig('{}/aut_stg_{}'.format(plot_path, name), bbox_inches='tight') 
-    plt.close(fig) 
-    
+    plt.close(fig)     
 
-for s, b in product(ngpus, ccrs):
-    sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
-    y = True if s == 1 else False
-    col = '#988ED5' if s == 1 else '#8EBA42'
-    plot_reductions(data=sdf, name="s{}_b{}".format(s, format_ccr[b]), ylabel=y, dotcolor=col)
+# for s, b in product(ngpus, ccrs):
+#     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
+#     y = True if s == 1 else False
+#     col = '#988ED5' if s == 1 else '#8EBA42'
+#     plot_reductions(data=sdf, name="s{}_b{}".format(s, format_ccr[b]), ylabel=y, dotcolor=col)
     
 
 

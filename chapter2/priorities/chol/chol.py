@@ -25,57 +25,47 @@ o_avgs = ["M", "MD", "B", "W", "HM", "GM", "R", "D", "NC", "SD"]
 # Get the data.
 # =============================================================================
 
-# data = []
-# for nb in nbs:
-#     print("\nTile size: {}".format(nb))
-#     for nt in ntiles:  
-#         print("DAG: {}".format(nt))
-#         # Load the DAG.
-#         with open('{}/nb{}/{}.dill'.format(dag_path, nb, nt), 'rb') as file:
-#             G = dill.load(file)  
+data = []
+for nb in nbs:
+    print("\nTile size: {}".format(nb))
+    for N in ntiles:  
+        print("DAG: {} x {}".format(N, N))
+        # Load the DAG.
+        with open('{}/nb{}/{}.dill'.format(dag_path, nb, N), 'rb') as file:
+            G = dill.load(file)  
             
-#         # Compute minimal serial time.
-#         mst = G.minimal_serial_time()
+        # Compute minimal serial time.
+        mst = G.minimal_serial_time()
         
-#         for s in ngpus:
+        for s in ngpus:
             
-#             graph_data = {"r" : r, "s" : s, "n" : G.size, "nt" : nt, "NB" : nb, "MST" : mst} 
+            graph_data = {"r" : r, "s" : s, "n" : G.size, "N" : N, "NB" : nb, "MST" : mst} 
                 
-#             # Compute makespan lower bound.
-#             lb = G.makespan_lower_bound(r + s)
-#             graph_data["MLB"] = lb      
+            # Compute makespan lower bound.
+            lb = G.makespan_lower_bound(r + s)
+            graph_data["MLB"] = lb      
             
-#             # Compute makespan for random selection policy.
-#             rand_prios = {t : G.size - i for i, t in enumerate(G.top_sort)}
-#             mkspan = priority_scheduling(G, r, s, priorities=rand_prios, sel_policy="EFT")
-#             graph_data["RND"] = mkspan
+            # Compute makespan for random selection policy.
+            rand_prios = {t : G.size - i for i, t in enumerate(G.top_sort)}
+            mkspan = priority_scheduling(G, r, s, priorities=rand_prios, sel_policy="EFT")
+            graph_data["RND"] = mkspan
                         
-#             # Compute makespan for each average (upward ranks).
-#             for avg in u_avgs:  
-#                 U = G.get_upward_ranks(r, s, avg_type=avg)
-#                 mkspan = priority_scheduling(G, r, s, priorities=U, sel_policy="EFT")
-#                 graph_data["{}-U".format(avg)] = mkspan
+            # Compute makespan for each average (upward ranks).
+            for avg in u_avgs:  
+                U = G.get_upward_ranks(r, s, avg_type=avg)
+                mkspan = priority_scheduling(G, r, s, priorities=U, sel_policy="EFT")
+                graph_data["{}-U".format(avg)] = mkspan
                         
-#             # Compute the makespans for each average (optimistic costs).
-#             OCT = G.optimistic_cost_table() 
-#             for avg in o_avgs:  
-#                 ranks = {t : average(OCT[t]["c"] + G.graph.nodes[t]['weight']["c"], OCT[t]["g"] + G.graph.nodes[t]['weight']["g"], 
-#                               r=r, s=s, avg_type=avg) for t in G.top_sort} 
-#                 mkspan = priority_scheduling(G, r, s, priorities=ranks, sel_policy="EFT") 
-#                 graph_data["{}-O".format(avg)] = mkspan             
+            # Compute the makespans for each average (optimistic costs).
+            OCT = G.optimistic_cost_table() 
+            for avg in o_avgs:  
+                ranks = {t : average(OCT[t]["c"] + G.graph.nodes[t]['weight']["c"], OCT[t]["g"] + G.graph.nodes[t]['weight']["g"], 
+                              r=r, s=s, avg_type=avg) for t in G.top_sort} 
+                mkspan = priority_scheduling(G, r, s, priorities=ranks, sel_policy="EFT") 
+                graph_data["{}-O".format(avg)] = mkspan             
         
-#             data.append(graph_data)
+            data.append(graph_data)
                     
-# # Save the dataframe.
+# # Save the dataframe. Commented out by default.
 # df = pd.DataFrame(data)  
 # df.to_csv('chol.csv', encoding='utf-8', index=False)
-
-# Rename averages. 
-df = pd.read_csv('chol.csv')
-cols = {}
-for avg in u_avgs:
-    cols["U-{}".format(avg)] = "{}-U".format(avg)
-for avg in o_avgs:
-    cols["O-{}".format(avg)] = "{}-O".format(avg)
-df.rename(columns=cols, inplace=True)
-df.to_csv('chol2.csv', encoding='utf-8', index=False)

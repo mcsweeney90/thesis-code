@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Autopsy for Cholesky graphs.
+Autopsy method for Cholesky graphs.
 """
 
 import dill
@@ -21,16 +21,16 @@ r = 32
 ngpus = [1, 4]
 
 # =============================================================================
-# Get the data.
+# Generate results.
 # =============================================================================
 
 data = []
 for nb in nbs:
     print("\nTile size: {}".format(nb))
-    for nt in ntiles:  
-        print("DAG: {}".format(nt))
+    for N in ntiles:  
+        print("DAG: {}".format(N))
         # Load the DAG.
-        with open('{}/nb{}/{}.dill'.format(dag_path, nb, nt), 'rb') as file:
+        with open('{}/nb{}/{}.dill'.format(dag_path, nb, N), 'rb') as file:
             G = dill.load(file)  
             
         # Compute minimal serial time.
@@ -38,7 +38,7 @@ for nb in nbs:
         
         for s in ngpus:
             
-            graph_data = {"r" : r, "s" : s, "n" : G.size, "nt" : nt, "NB" : nb, "MST" : mst} # TODO: r needed now?
+            graph_data = {"r" : r, "s" : s, "n" : G.size, "N" : N, "NB" : nb, "MST" : mst} 
                 
             # Compute makespan lower bound.
             lb = G.makespan_lower_bound(r + s)
@@ -53,7 +53,7 @@ for nb in nbs:
             eft_time = timer() - start
             graph_data["HEFT"] = heft  
             
-            # Autopsy.
+            # Autopsy method.
             start = timer()
             alpha = {}
             for worker, load in S.items():
@@ -76,6 +76,6 @@ for nb in nbs:
         
             data.append(graph_data)
                     
-# Save the dataframe.
-df = pd.DataFrame(data)  
-df.to_csv('chol_NEW.csv', encoding='utf-8', index=False)
+# Save the dataframe. Commented out by default.
+# df = pd.DataFrame(data)  
+# df.to_csv('chol.csv', encoding='utf-8', index=False)

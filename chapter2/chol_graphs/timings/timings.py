@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Save timing data as a dict for ease of access.
+Save timing data as dict for ease of access.
 """
 
 import dill
@@ -22,7 +22,7 @@ for nb in tile_sizes:
     for kernel in kernels:
         timings[nb][kernel]["c"] = list(y[2] for y in cpu_raw[kernel][idx : idx + runs])  
         timings[nb][kernel]["g"] = list(y[2] for y in gpu_raw[kernel][idx : idx + runs]) 
-        timings[nb][kernel]["d"] = list(y[3] - y[2] for y in gpu_raw[kernel][idx : idx + runs]) # TODO.
+        timings[nb][kernel]["d"] = list(y[3] - y[2] for y in gpu_raw[kernel][idx : idx + runs]) 
     idx += (runs + 1)
 with open('timings.dill', 'wb') as handle:
     dill.dump(timings, handle)

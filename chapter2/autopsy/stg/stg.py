@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Autopsy for STG set.
+Autopsy method for STG set.
 """
 
 import dill, os
@@ -12,21 +12,21 @@ import sys
 sys.path.append('../../') 
 from src import DAG, priority_scheduling
 
-size = 100
-dag_path = '../../../graphs/STG/{}'.format(size)
+####################################################################################################
 
+size = 1000
+dag_path = '../../../graphs/STG/{}'.format(size)
 ccrs = [0.01, 0.1, 1.0, 10.0]
 r = 32
 ngpus = [1, 4]
 runs = 10
 
 # =============================================================================
-# Get data.
+# Generate results.
 # =============================================================================
 
 data = [] 
 for dname in os.listdir(dag_path):  
-    print(dname)
     # Load the DAG topology.
     with open('{}/{}'.format(dag_path, dname), 'rb') as file:
         T = dill.load(file)
@@ -40,7 +40,7 @@ for dname in os.listdir(dag_path):
                 # Set the weights.    
                 G.set_random_weights(r=r, s=s, ccr=ccr)    
                 
-                graph_data = {"n" : G.size, "r" : r, "s" : s, "CCR" : ccr, "NAME" : dname[:-5], "RUN" : run} 
+                graph_data = {"n" : G.size, "r" : r, "s" : s, "CCR" : ccr, "DAG" : dname[:-5], "RUN" : run} 
                 
                 # Compute makespan lower bound.
                 lb = G.makespan_lower_bound(r + s)
@@ -81,6 +81,7 @@ for dname in os.listdir(dag_path):
                 graph_data["AUT PTI"] = 100*(aut_time/eft_time) # Percentage time increase. 
                 
                 data.append(graph_data)        
-    
-df = pd.DataFrame(data)  
-df.to_csv('stg{}.csv'.format(size), encoding='utf-8', index=False)
+
+# Save the dataframe. Commented out by default.
+# df = pd.DataFrame(data)  
+# df.to_csv('stg{}.csv'.format(size), encoding='utf-8', index=False)

@@ -15,16 +15,16 @@ with open('{}/timings.dill'.format(timings_path), 'rb') as file:
     timings = dill.load(file)
     
 # Load DAG topology, set weights and save weighted DAGs for future use.
-for nt in range(5, 51, 5):
+for N in range(5, 51, 5):
     for nb in [128, 1024]:
         dag_save_path = '/nb{}'.format(nb)
         pathlib.Path(dag_save_path).mkdir(parents=True, exist_ok=True)
         start = timer()
-        with open('{}/{}.dill'.format(dag_top_path, nt), 'rb') as file:
+        with open('{}/{}.dill'.format(dag_top_path, N), 'rb') as file:
             top = dill.load(file)
         G = src.DAG(top)
         G.set_cholesky_weights(timings, nb=nb)
-        with open('{}/{}.dill'.format(dag_save_path, nt), 'wb') as handle:
+        with open('{}/{}.dill'.format(dag_save_path, N), 'wb') as handle:
             dill.dump(G, handle)
         elapsed = timer() - start
-        print("nt = {}, nb = {}, time = {}".format(nt, nb, elapsed))
+        print("N = {}, nb = {}, time = {}".format(N, nb, elapsed))

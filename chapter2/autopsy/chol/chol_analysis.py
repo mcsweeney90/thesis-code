@@ -7,7 +7,7 @@ Summaries and plots for the Cholesky data.
 import pathlib
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
+from itertools import product
 
 ####################################################################################################
 
@@ -28,9 +28,8 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+# print(plt.rcParams['axes.prop_cycle'].by_key()['color']) # Sometimes useful if colors needed. 
 
 ####################################################################################################
 
@@ -87,46 +86,34 @@ def summarize(data, save_dest):
 #     summarize(data=sdf, save_dest=loc)
 
 # # By platform and tile size.  
-# for s in ngpus:
-#     for nb in nbs:
-#         sdf = df.loc[(df['s'] == s) & (df['NB'] == nb)]   
-#         loc = "{}/s{}_nb{}.txt".format(summary_path, s, nb)
-#         summarize(data=sdf, save_dest=loc)
+# for s, nb in product(ngpus, nbs):
+#     sdf = df.loc[(df['s'] == s) & (df['NB'] == nb)]   
+#     loc = "{}/s{}_nb{}.txt".format(summary_path, s, nb)
+#     summarize(data=sdf, save_dest=loc)
 
 # =============================================================================
 # Plots.
 # =============================================================================
         
-# Percentage reduction in makespan.
-sdf1 = df.loc[(df['s'] == 1) & (df['NB'] == 128)] 
-reds1 = 100*(sdf1["HEFT"] - sdf1["AUT"])/sdf1["HEFT"]
-
-sdf2 = df.loc[(df['s'] == 1) & (df['NB'] == 1024)] 
-reds2 = 100*(sdf2["HEFT"] - sdf2["AUT"])/sdf2["HEFT"]
-
-sdf3 = df.loc[(df['s'] == 4) & (df['NB'] == 128)] 
-reds3 = 100*(sdf3["HEFT"] - sdf3["AUT"])/sdf3["HEFT"]
-
-sdf4 = df.loc[ (df['s'] == 4) & (df['NB'] == 1024)] 
-reds4 = 100*(sdf4["HEFT"] - sdf4["AUT"])/sdf4["HEFT"]
+# Calculate percentage reductions in makespan.
+reds = {}
+for s, nb in product(ngpus, nbs):
+    sdf = df.loc[(df['s'] == s) & (df['NB'] == nb)] 
+    reds[(s, nb)] = 100*(sdf["HEFT"] - sdf["AUT"])/sdf["HEFT"]
 
 fig = plt.figure(dpi=400)
 ax1 = fig.add_subplot(111)
-ax1.plot(ntiles, reds1, color='#988ED5', marker='o', label="s = 1, nb = 128", linewidth=1.0)
-ax1.plot(ntiles, reds2, color='#988ED5', marker='s', label="s = 1, nb = 1024", linewidth=1.0, linestyle='--')
-ax1.plot(ntiles, reds3, color='#8EBA42', marker='o', label="s = 4, nb = 128", linewidth=1.0)
-ax1.plot(ntiles, reds4, color='#8EBA42', marker='s', linestyle='--',  label="s = 4, nb = 1024", linewidth=1.0)
-
-# ax1.set_facecolor('black')
+ax1.plot(ntiles, reds[(1, 128)], color='#988ED5', marker='o', label="s = 1, nb = 128", linewidth=1.0)
+ax1.plot(ntiles, reds[(1, 1024)], color='#988ED5', marker='s', label="s = 1, nb = 1024", linewidth=1.0, linestyle='--')
+ax1.plot(ntiles, reds[(4, 128)], color='#8EBA42', marker='o', label="s = 4, nb = 128", linewidth=1.0)
+ax1.plot(ntiles, reds[(4, 1024)], color='#8EBA42', marker='s', linestyle='--',  label="s = 4, nb = 1024", linewidth=1.0)
 ax1.axhline(y=0, color='black', linestyle='-', linewidth=1.0)
-# plt.grid(True, linestyle=':')
 
 plt.minorticks_on()
 plt.grid(True, linestyle='-', axis='y', which='major')
 plt.grid(True, linestyle=':', axis='y', which='minor')
 plt.grid(True, linestyle='-', axis='x', which='major')
 plt.grid(True, linestyle=':', axis='x', which='minor')
-
 
 ax1.set_xlabel("N", labelpad=5)
 ax1.set_ylabel("MAKESPAN REDUCTION (%)", labelpad=5)

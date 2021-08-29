@@ -30,7 +30,6 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -40,8 +39,8 @@ summary_path = "summaries/"
 pathlib.Path(summary_path).mkdir(parents=True, exist_ok=True)
 plot_path = "plots/"
 pathlib.Path(plot_path).mkdir(parents=True, exist_ok=True)
-
 df = pd.read_csv('chol.csv') 
+
 ntiles = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 tilings = list("{}x{}".format(N, N) for N in ntiles)
 ntasks = {5:35, 10:220, 15:680, 20:1540, 25:2925, 30:4960, 35:7770, 40:11480, 45:16215, 50:22100}
@@ -196,61 +195,65 @@ all_avgs = ["{}-U".format(avg) for avg in u_avgs] + ["{}-O".format(avg) for avg 
 # A. According to s and nb.
 ###############################################
 
-def add_patch(legend):
-    ax = legend.axes
+# def add_patch(legend):
+#     """
+#     Helper function for adding new handles to existing legend. (From Stack Overflow.) 
 
-    handles, labels = ax.get_legend_handles_labels()
-    handles += [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
-    labels += list('{} = {}'.format(m, round(mpd[m], 3)) for m in sort) 
+#     """
+#     ax = legend.axes
 
-    legend._legend_box = None
-    legend._init_legend_box(handles, labels)
-    legend._set_loc(legend._loc)
-    legend.set_title(legend.get_title().get_text())
+#     handles, labels = ax.get_legend_handles_labels()
+#     handles += [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
+#     labels += list('{} = {}'.format(m, round(mpd[m], 3)) for m in sort) 
 
-for nb in nbs:
-    for s in ngpus:
-        # Get specific data.
-        data = df.loc[(df['NB'] == nb) & (df['s'] == s)] 
-        bests = data.loc[:, all_avgs].min(axis=1) 
-        u_data = list((100*(data["{}-U".format(avg)] - bests)/bests).mean() for avg in u_avgs)
-        check = lambda avg : (100*(data["{}-O".format(avg)] - bests)/bests).mean() if avg not in ["SW", "SB", "SHM", "SGM"] else 0.0
-        o_data = list(check(avg) for avg in u_avgs)   
+#     legend._legend_box = None
+#     legend._init_legend_box(handles, labels)
+#     legend._set_loc(legend._loc)
+#     legend.set_title(legend.get_title().get_text())
+
+# for nb in nbs:
+#     for s in ngpus:
+#         # Get specific data.
+#         data = df.loc[(df['NB'] == nb) & (df['s'] == s)] 
+#         bests = data.loc[:, all_avgs].min(axis=1) 
+#         u_data = list((100*(data["{}-U".format(avg)] - bests)/bests).mean() for avg in u_avgs)
+#         check = lambda avg : (100*(data["{}-O".format(avg)] - bests)/bests).mean() if avg not in ["SW", "SB", "SHM", "SGM"] else 0.0
+#         o_data = list(check(avg) for avg in u_avgs)   
         
-        mpd = {method : (100*(data[method] - bests)/bests).mean() for method in all_avgs}   
-        # Sort methods to identify three best.
-        sort = sorted(mpd, key=mpd.get)[:3]
+#         mpd = {method : (100*(data[method] - bests)/bests).mean() for method in all_avgs}   
+#         # Sort methods to identify three best.
+#         sort = sorted(mpd, key=mpd.get)[:3]
               
-        x = np.arange(len(u_avgs))
-        width = 0.4
+#         x = np.arange(len(u_avgs))
+#         width = 0.4
         
-        fig, ax = plt.subplots(dpi=400)
-        rects1 = ax.bar(x - width/2, u_data, width, label='UPWARD RANK', color='#E24A33')
-        rects2 = ax.bar(x + width/2, o_data, width, label='OPTIMISTIC COSTS', color='#348ABD')
+#         fig, ax = plt.subplots(dpi=400)
+#         rects1 = ax.bar(x - width/2, u_data, width, label='UPWARD RANK', color='#E24A33')
+#         rects2 = ax.bar(x + width/2, o_data, width, label='OPTIMISTIC COSTS', color='#348ABD')
         
-        plt.minorticks_on()
-        plt.grid(True, linestyle='-', axis='y', which='major')
-        plt.grid(True, linestyle=':', axis='y', which='minor')
-        plt.grid(False, axis='x')
+#         plt.minorticks_on()
+#         plt.grid(True, linestyle='-', axis='y', which='major')
+#         plt.grid(True, linestyle=':', axis='y', which='minor')
+#         plt.grid(False, axis='x')
         
-        # Get the three best and label them.
-        handles = [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
-        labels = list('{} = {}'.format(m, round(mpd[m], 3)) for m in sort)    
-        ax.legend(handles, labels, handlelength=0, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white', framealpha=1.0)   
+#         # Get the three best and label them.
+#         handles = [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
+#         labels = list('{} = {}'.format(m, round(mpd[m], 3)) for m in sort)    
+#         ax.legend(handles, labels, handlelength=0, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white', framealpha=1.0)   
         
-        # Add some text for labels, title and custom x-axis tick labels, etc.
-        if s == 1:
-            ax.set_ylabel("MEAN PERCENTAGE DEGRADATION", labelpad=5)
-        ax.set_xticks(x)
-        ax.set_xticklabels(u_avgs)
-        ax.tick_params(axis='x', which='minor', bottom=False)
-        if s == 1 and nb == 128:
-            lgd = ax.legend(handlelength=3, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white')
-            add_patch(lgd)
+#         # Add some text for labels, title and custom x-axis tick labels, etc.
+#         if s == 1:
+#             ax.set_ylabel("MEAN PERCENTAGE DEGRADATION", labelpad=5)
+#         ax.set_xticks(x)
+#         ax.set_xticklabels(u_avgs)
+#         ax.tick_params(axis='x', which='minor', bottom=False)
+#         if s == 1 and nb == 128:
+#             lgd = ax.legend(handlelength=3, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white')
+#             add_patch(lgd)
                         
-        fig.tight_layout()    
-        plt.savefig('{}/prio_chol_mpd_s{}_nb{}'.format(plot_path, s, nb), bbox_inches='tight') 
-        plt.close(fig) 
+#         fig.tight_layout()    
+#         plt.savefig('{}/prio_chol_mpd_s{}_nb{}'.format(plot_path, s, nb), bbox_inches='tight') 
+#         plt.close(fig) 
 
 ###############################################
 # B. Entire set.
@@ -282,38 +285,5 @@ for nb in nbs:
 # plt.savefig('{}/prio_chol_mpd'.format(plot_path), bbox_inches='tight') 
 # plt.close(fig) 
 
-#####################################################################
-# 3. Best instances.
-#####################################################################
-
-###############################################
-# A. Entire set.
-###############################################
-
-# data = df
-# bests = data.loc[:, all_avgs].min(axis=1) 
-# u_data = list( ((abs(bests - data["{}-U".format(avg)])).values == 0.0).sum() for avg in u_avgs) 
-# check = lambda avg : ((abs(bests - data["{}-O".format(avg)])).values == 0.0).sum() if avg not in ["SW", "SB", "SHM", "SGM"] else 0.0
-# o_data = list(check(avg) for avg in u_avgs)   
-      
-# x = np.arange(len(u_avgs))
-# width = 0.4
-
-# fig, ax = plt.subplots(dpi=400)
-# rects1 = ax.bar(x - width/2, u_data, width, label='UPWARD RANK', color='#E24A33')
-# rects2 = ax.bar(x + width/2, o_data, width, label='OPTIMISTIC COSTS', color='#348ABD')
-
-# # Add some text for labels, title and custom x-axis tick labels, etc.
-# ax.set_ylabel("# BESTS (OUT OF 40)", labelpad=5)
-# ax.set_xticks(x)
-# ax.set_xticklabels(u_avgs)
-# # ax.legend(handlelength=3, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white')
-
-# # ax.bar_label(rects1, label_type='edge', rotation=90, padding=3)
-# # ax.bar_label(rects2, label_type='edge', rotation=90, padding=3)
-        
-# fig.tight_layout()    
-# plt.savefig('{}/prio_chol_bests'.format(plot_path), bbox_inches='tight') 
-# plt.close(fig)  
 
 

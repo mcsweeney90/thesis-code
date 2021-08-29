@@ -8,22 +8,22 @@ import dill, pathlib
 import networkx as nx
 from timeit import default_timer as timer
 
-def cholesky(n_tiles):
+def cholesky(N):
     """
     Create a networkx digraph representing Cholesky factorization. 
-    From the earliest days of my PhD so it's a bit code soup, will optimize some day!
+    N is the number of tiles along each axis of the matrix - i.e., it is an NxN tiled matrix.
     """
     
     last = {} # Useful for keeping track of things...   
     counts = {"P" : 1, "T" : 1, "S" : 1, "G" : 1}
     G = nx.DiGraph()    
-    for k in range(n_tiles): # Grow the DAG column by column.
+    for k in range(N): # Grow the DAG column by column.
         n1 = "P{}".format(counts["P"])
         counts["P"] += 1
         if k > 0:
             G.add_edge(last[(k, k)], n1)  
         last[(k, k)] = n1      
-        for i in range(k + 1, n_tiles):
+        for i in range(k + 1, N):
             n2 = "T{}".format(counts["T"])
             counts["T"] += 1
             G.add_edge(n1, n2)
@@ -32,7 +32,7 @@ def cholesky(n_tiles):
             except KeyError:
                 pass
             last[(i, k)] = n2     
-        for i in range(k + 1, n_tiles): 
+        for i in range(k + 1, N): 
             n3 = "S{}".format(counts["S"])
             counts["S"] += 1
             try:
