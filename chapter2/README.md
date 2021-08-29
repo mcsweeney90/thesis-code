@@ -10,13 +10,12 @@ Optimizing scheduling heuristics for accelerated architectures.
 
 `chol_graphs` : Cholesky factorization task DAGs.
 
-`lookahead` : TODO. Rename this to `selection`.
+`selection` : Processor selection rules.
 
 `priorities` : Task prioritization methods.
 
 `src.py` : Simulator source code.
 
-## Need to know
 
 
 

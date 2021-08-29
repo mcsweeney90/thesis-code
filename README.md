@@ -18,7 +18,8 @@ This is the central repository for the (Python) code used to generate results in
 
 ## Getting started
 
-This has only been tested for Python **>= 3.8** so performance for older versions cannot be guaranteed. 
+I would strongly recommend using a version of Python **>= 3.8**. In particular, some of the code in `chapter4` and `chapter5` uses functions from the `statistics` module that were only introduced in **3.8**.
+Older versions might be adequate for `chapter2` and `chapter3` but I can't offer any guarantees. Python2 definitely will not work though. 
 
 To install all relevant Python packages:
 ```
@@ -29,8 +30,7 @@ pip install -r requirements.txt
 
 The most common problems I encountered were:
 
-1. Issues with `dill`. 
-
+1. `dill`. Occasionally I found I needed seemingly-unnecessary `import` statements when loading objects that used custom classes. 
 
 ## License
 

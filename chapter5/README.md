@@ -4,13 +4,10 @@ Stochastic scheduling.
 
 ## Navigation
 
-`chol_graphs` : Cholesky factorization task DAGs.
-
-`scalar` : TODO.
+`scalar` : Evaluating proposed modification to Monte Carlo Scheduling (MCS).
 
 `src.py` : Simulator source code.
 
-## Need to know
 
 
 

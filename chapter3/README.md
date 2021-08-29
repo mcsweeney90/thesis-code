@@ -12,7 +12,6 @@ The critical path in heterogeneous scheduling.
 
 `src.py` : Simulator source code.
 
-## Need to know
 
 
 
