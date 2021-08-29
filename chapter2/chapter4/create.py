@@ -32,10 +32,10 @@ runs = len(timings[128]["G"]["c"])
 
 for nb in nbs:
     print("\nTile size: {}".format(nb))
-    for nt in ntiles:  
-        print("DAG: {}".format(nt))
+    for N in ntiles:  
+        print("DAG: {}x{}".format(N, N))
         # Load the DAG.
-        with open('{}/nb{}/{}.dill'.format(dag_path, nb, nt), 'rb') as file:
+        with open('{}/nb{}/{}.dill'.format(dag_path, nb, N), 'rb') as file:
             G = dill.load(file)  
                     
         for s in ngpus:                        
@@ -76,9 +76,9 @@ for nb in nbs:
                         S.add_edge(d, t)
                         S[d][t]['weight'] = 0.0
             # Save the graph.
-            dag_save_path = '../../chapter4/chol_graphs/ORIGnb{}s{}/'.format(nb, s)
+            dag_save_path = 'nb{}s{}/'.format(nb, s)
             pathlib.Path(dag_save_path).mkdir(parents=True, exist_ok=True)
-            with open('{}/{}.dill'.format(dag_save_path, nt), 'wb') as handle:
+            with open('{}/{}.dill'.format(dag_save_path, N), 'wb') as handle:
                 dill.dump(S, handle)
             
                         

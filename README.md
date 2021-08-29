@@ -12,25 +12,19 @@ This is the central repository for the (Python) code used to generate results in
 
 `chapter5` : Stochastic scheduling.
 
-`graphs` : Graph topologies - `networkx` DiGraphs saved using `dill` - which are used by code in all of the above chapter folders. 
+`graphs` : Graph topologies which are used by code in all of the above chapter folders. 
 
 `requirements.txt` : Python packages required to run all code.
 
 ## Getting started
 
-I would strongly recommend using a version of Python **>= 3.8**. In particular, some of the code in `chapter4` and `chapter5` uses functions from the `statistics` module that were only introduced in **3.8**.
-Older versions might be adequate for `chapter2` and `chapter3` but I can't offer any guarantees. Python2 definitely will not work though. 
+I would strongly recommend using a version of Python **>= 3.8** since some of the code in `chapter4` and `chapter5` uses functions from the `statistics` module that were only introduced in **3.8**.
+Older Python3 versions might be adequate for `chapter2` and `chapter3` but Python2 definitely will not work. 
 
 To install all relevant Python packages:
 ```
 pip install -r requirements.txt
 ```
-
-## Troubleshooting
-
-The most common problems I encountered were:
-
-1. `dill`. Occasionally I found I needed seemingly-unnecessary `import` statements when loading objects that used custom classes. 
 
 ## License
 

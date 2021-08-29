@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Scheduling simulator.
+Classes and functions for accelerated scheduling simulation model. 
 """
 
 import networkx as nx
@@ -15,21 +15,39 @@ class DAG:
     Represents a task graph.
     """
     def __init__(self, graph):
-        """Graph is a NetworkX digraph with {Processor ID : float} node weights. Usually output by functions elsewhere..."""
-        self.graph = graph
-        self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
-        self.size = len(self.top_sort)
-        
-    def set_cholesky_weights(self, timings, nb=1024):
         """
-        TODO. Set weights for Cholesky DAGs. 
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph
+            DAG topology.
 
         Returns
         -------
         None.
 
         """
+        self.graph = graph
+        self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
+        self.size = len(self.top_sort)
         
+    def set_cholesky_weights(self, timings, nb=1024):
+        """
+        Set weights for Cholesky DAGs. 
+
+        Parameters
+        ----------
+        timings : DICT
+            See chol_graphs directory.
+        nb : INT, optional
+            Tile size. The default is 1024.
+
+        Returns
+        -------
+        None.
+
+        """              
         runs = len(timings[nb]["G"]["c"]) # Assumes they're all the same length.        
         for task in self.top_sort:
             task_type = task[0] 
@@ -38,29 +56,30 @@ class DAG:
             # Edges.
             for child in self.graph.successors(task):
                 child_type = child[0]
-                d = sum(timings[nb][child_type]["d"])/runs # TODO: scrap this and just use single data movement cost for all kernels?
+                d = sum(timings[nb][child_type]["d"])/runs 
                 self.graph[task][child]['weight'] = d
         
     def set_random_weights(self, r, s, gpu_mean=1.0, gpu_cov=1.0, cpu_mean=15.0, cpu_cov=1.0, ccr=1.0):
         """
-        TODO.
+        Set randomly generated weights (for STG graphs).
 
         Parameters
         ----------
-        r : TYPE
-            DESCRIPTION.
-        s : TYPE
-            DESCRIPTION.
-        gpu_mean : TYPE, optional
-            DESCRIPTION. The default is 1.0.
-        gpu_cov : TYPE, optional
-            DESCRIPTION. The default is 1.0.
-        cpu_mean : TYPE, optional
-            DESCRIPTION. The default is 15.0.
+        r : INT
+            Number of CPUs.
+        s : INT
+            Number of GPUs.
+        gpu_mean : FLOAT, optional
+            Mean GPU task execution time. The default is 1.0.
+        gpu_cov : FLOAT, optional
+            Coefficient of variation of GPU execution time distribution. The default is 1.0.
+        cpu_mean : FLOAT, optional
+            Mean CPU task execution time. The default is 15.0.
         cpu_cov : TYPE, optional
-            DESCRIPTION. The default is 1.0.
-        ccr : TYPE, optional
-            DESCRIPTION. The default is 1.0.
+            Coefficient of variation of CPU execution time distribution. The default is 1.0.
+        ccr : FLOAT, optional
+            Target computation-to-communication ratio of DAG. Defined as sum of all mean edge weights over sum of all mean task weights. 
+            The default is 1.0.
 
         Returns
         -------
@@ -89,8 +108,35 @@ class DAG:
     
     def edge_average(self, parent, child, r=1, s=1, avg_type="M"):
         """
-        TODO.
-        Needed because of different nature of edge averages, depending on type.
+        Calculates the average weight of edge from parent to child.
+
+        Parameters
+        ----------
+        parent : INT/STRING
+            ID of parent task.
+        child : INT/STRING
+            ID of child task.
+        r : INT, optional
+            Number of CPUs. The default is 1.
+        s : INT, optional
+            Number of GPUs. The default is 1.
+        avg_type : STRING, optional
+            Type of average to use. The default is "M".
+
+        Raises
+        ------
+        ValueError
+            If avg_type not recognized.
+
+        Returns
+        -------
+        FLOAT
+            The average weight of the edge.
+            
+        Notes
+        ----------
+        Couldn't just use average function (see below) because of how edge weights are stored. Also more efficient.         
+        
         """
         
         d = self.graph[parent][child]['weight']
@@ -112,7 +158,7 @@ class DAG:
             return 0.0 if (ci <= gi and ck <= gk) else d
         elif avg_type in ["SW", "sw"]:
             return d
-        elif avg_type in ["HM", "hm"]: # TODO: double check this against older version.
+        elif avg_type in ["HM", "hm"]: 
             ci, gi = self.graph.nodes[parent]['weight']["c"], self.graph.nodes[parent]['weight']["g"]
             ck, gk = self.graph.nodes[child]['weight']["c"], self.graph.nodes[child]['weight']["g"]
             num = d * r * s * (ci*gk + ck*gi) + d*ci*ck*s*(s - 1)
@@ -130,7 +176,7 @@ class DAG:
             q = r + s
             m = (d * s * (2*r + s - 1)) / q**2
             return (sqrt(s*(2*r + s - 1)*(d - m)**2 + (r**2 + s)*m*m)) / q
-        elif avg_type in ["UCB", "ucb"]:
+        elif avg_type in ["UCB", "ucb"]: # Didn't include this in the end.
             q = r + s
             m = (d * s * (2*r + s - 1)) / q**2
             sd = (sqrt(s*(2*r + s - 1)*(d - m)**2 + (r**2 + s)*m*m)) / q
@@ -138,7 +184,24 @@ class DAG:
         raise ValueError('Unrecognized avg_type!')
         
     def get_upward_ranks(self, r, s, avg_type="M"):
-        """Upward ranks."""
+        """
+        Compute upward ranks for all tasks according to the input average type.
+
+        Parameters
+        ----------
+        r : INT, optional
+            Number of CPUs. 
+        s : INT, optional
+            Number of GPUs. 
+        avg_type : STRING, optional
+            Type of average to use. The default is "M".
+
+        Returns
+        -------
+        ranks : DICT
+            {Task ID : rank}.
+
+        """
         ranks = {}
         backward_traversal = list(reversed(self.top_sort))
         for t in backward_traversal:
@@ -152,8 +215,22 @@ class DAG:
     
     def get_downward_ranks(self, r, s, avg_type="M"):
         """
-        Downward ranks.
-        TODO: double check.
+        Compute downward ranks for all tasks according to the input average type.
+
+        Parameters
+        ----------
+        r : INT, 
+            Number of CPUs. 
+        s : INT,
+            Number of GPUs. 
+        avg_type : STRING, optional
+            Type of average to use. The default is "M".
+
+        Returns
+        -------
+        ranks : DICT
+            {Task ID : rank}.
+
         """
         ranks = {}
         for t in self.top_sort:
@@ -167,8 +244,21 @@ class DAG:
     
     def orig_optimistic_cost_table(self, r, s):
         """
-        Used in PEFT heuristic.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and [citation].
         Original version that uses average weights for edge.
+
+        Parameters
+        ----------
+        r : INT, 
+            Number of CPUs. 
+        s : INT, 
+            Number of GPUs. 
+
+        Returns
+        -------
+        OCT : DICT
+            {Task ID : {Worker ID : optimistic cost, ...}, ...}.
+
         """
         
         worker_types = ["c", "g"]
@@ -184,13 +274,28 @@ class DAG:
                     action_values = [OCT[child][v] + delta(w, v) * self.edge_average(task, child, r, s, avg_type="M")
                                      + self.graph.nodes[child]['weight'][v] for v in worker_types]
                     child_values.append(min(action_values))   
-                OCT[task][w] += max(child_values) if len(child_values) else 0.0 # Don't like...
+                OCT[task][w] += max(child_values) if len(child_values) else 0.0 
         return OCT
     
     def optimistic_cost_table(self, include_current=False):
         """
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and [citation].
         Alterative version that uses actual cost.
-        (Very little difference in this case because of the simple communication model.)
+
+        Parameters
+        ----------
+        include_current : BOOL, optional
+            Include current task weight when calculating optimistic future costs (True for priorities, False for selection). The default is False.
+
+        Returns
+        -------
+        OCT : DICT
+            {Task ID : {Worker ID : optimistic cost, ...}, ...}.
+            
+        Notes
+        -------
+        Unlike above, r and s not required since don't use average values for edge weight.
+
         """
         
         worker_types = ["c", "g"]
@@ -210,7 +315,7 @@ class DAG:
                         action_values = [OCT[child][v] + delta(w, v) * self.graph[task][child]['weight'] 
                                          + self.graph.nodes[child]['weight'][v] for v in worker_types]
                     child_values.append(min(action_values))   
-                OCT[task][w] += max(child_values) if len(child_values) else 0.0 # Don't like...
+                OCT[task][w] += max(child_values) if len(child_values) else 0.0 
         return OCT
     
     def get_critical_path(self, cp_type="AVG", avg_type="M", r=1, s=1, all_critical_tasks=False):

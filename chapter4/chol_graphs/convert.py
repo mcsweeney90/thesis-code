@@ -14,7 +14,7 @@ from src import RV, StochDAG
 ntasks = list(range(5, 51, 5))
 for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
     print(nt)
-    chol_load_path = 'ORIGnb{}s{}/'.format(nb, s)
+    chol_load_path = '../../chapter2/chapter4/nb{}s{}/'.format(nb, s) # TODO: double check this.
     chol_save_path = 'nb{}s{}/'.format(nb, s)
     pathlib.Path(chol_save_path).mkdir(parents=True, exist_ok=True)
     
