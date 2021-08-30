@@ -1,6 +1,6 @@
 # Optimizing scheduling heuristics for accelerated architectures.
 
-All the classes and functions can be found in `src.py`. The directories contain the scripts used to generate results and analyze them (e.g., make plots).  
+All of the main classes and functions can be found in `src.py`. The directories contain the scripts used to generate results and analyze them (e.g., make plots).  
 
 ## Navigation
 

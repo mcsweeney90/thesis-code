@@ -279,8 +279,8 @@ class DAG:
     
     def optimistic_cost_table(self, include_current=False):
         """
-        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and [citation].
-        Alterative version that uses actual cost.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic.
+        Alterative version that uses actual edge cost rather than average.
 
         Parameters
         ----------
@@ -320,22 +320,25 @@ class DAG:
     
     def get_critical_path(self, cp_type="AVG", avg_type="M", r=1, s=1, all_critical_tasks=False):
         """
-        TODO.
+        Identifies and returns critical path.
 
         Parameters
         ----------
-        cp_type : TYPE, optional
-            DESCRIPTION. The default is "AVG".
-        r : TYPE, optional
-            DESCRIPTION. The default is 1.
-        s : TYPE, optional
-            DESCRIPTION. The default is 1.
-        avg_type : TYPE, optional
-            DESCRIPTION. The default is "M".
+        cp_type : STRING, optional
+            Specifies the method used - either 'AVG' (averaging the weights) or 'OPT' (optimistic critical path). The default is "AVG".
+        r : INT, optional
+            Number of CPUs. The default is 1.
+        s : INT, optional
+            Number of GPUs. The default is 1.
+        avg_type : STRING, optional
+            Type of average to use if cp_type == "AVG". The default is "M" (arithmetic mean).
+        all_critical_tasks : BOOL, optional
+            If True and there are multiple critical paths, returns all of the critical tasks. The default is False.
 
         Returns
         -------
-        None.
+        critical_path : LIST
+            List of critical tasks.
 
         """
         
@@ -394,7 +397,20 @@ class DAG:
             return critical_path
             
     def makespan_lower_bound(self, q):
-        """Compute a lower bound on the makespan."""        
+        """
+        Computes a lower bound on the schedule makespan.
+
+        Parameters
+        ----------
+        q : INT
+            Total number of processors.
+
+        Returns
+        -------
+        FLOAT
+            The lower bound on the makespan.
+
+        """      
         path_bound = min(self.optimistic_cost_table(include_current=True)[self.top_sort[0]].values()) 
         min_work = sum(min(self.graph.nodes[t]['weight'].values()) for t in self.top_sort)
         work_bound = min_work / q
@@ -402,36 +418,37 @@ class DAG:
     
     def minimal_serial_time(self):
         """
-        Classic minimal serial time. Useful for gauging when algorithms do poorly. 
+        Returns the minimal serial time (MST).
 
         Returns
         -------
-        None.
+        FLOAT
+            The minimal serial time.
 
-        """        
+        """       
         cpu_time = sum(self.graph.nodes[t]['weight']["c"] for t in self.top_sort)
         gpu_time = sum(self.graph.nodes[t]['weight']["g"] for t in self.top_sort)
         return min(cpu_time, gpu_time)
     
     def ccr(self, r, s, avg_type="M"):
         """
-        TODO. Rename this?
+        Returns the communication-to-computation ratio (CCR) of the DAG, as defined by Equation 2.2.
 
         Parameters
         ----------
-        r : TYPE
-            DESCRIPTION.
-        s : TYPE
-            DESCRIPTION.
-        avg_type : TYPE, optional
-            DESCRIPTION. The default is "M".
+        r : INT
+            Number of CPUs.
+        s : INT
+            Number of GPUs.
+        avg_type : STRING, optional
+            The average type to use (e.g., arithmetic mean). The default is "M".
 
         Returns
         -------
-        None.
+        FLOAT
+            The CCR.
 
-        """
-        
+        """                
         exp_total_compute = sum(average(c=self.graph.nodes[t]['weight']["c"], g=self.graph.nodes[t]['weight']["g"], r=r, s=s, avg_type=avg_type) 
                                 for t in self.top_sort)
         exp_total_comm = sum(self.edge_average(parent, child, r, s, avg_type=avg_type) for parent, child in self.graph.edges)
@@ -445,6 +462,31 @@ class DAG:
 def average(c, g, r=1, s=1, avg_type="M"):
     """
     Quick average calculator when we have a set with r duplicates of c and s duplicates of g.
+    (Used for task averages.)
+
+    Parameters
+    ----------
+    c : INT/FLOAT
+        CPU execution time.
+    g : INT/FLOAT
+        GPU execution time.
+    r : INT, optional
+        Number of CPUs/multiplicity of c. Not needed for all average types. The default is 1.
+    s : INT, optional
+        Number of GPUs/multiplicity of g. Not needed for all average types. The default is 1.
+    avg_type : STRING, optional
+        The average type to use (e.g., arithmetic mean). The default is "M".
+
+    Raises
+    ------
+    ValueError
+        Unrecognized avg_type.
+
+    Returns
+    -------
+    FLOAT
+        The average value.
+
     """
     
     if avg_type in ["M", "m"]:
@@ -458,7 +500,7 @@ def average(c, g, r=1, s=1, avg_type="M"):
     elif avg_type in ["HM", "hm", "SHM", "shm"]:
         q = r + s
         return (q * c * g) / (r * g + s * c)
-        # return harmonic_mean(r * [c] + s * [g]) # Test if faster.
+        # return harmonic_mean(r * [c] + s * [g]) # Hard coding is faster.
     elif avg_type in ["GM", "gm", "SGM", "sgm"]:
         return pow(pow(c, r) * pow(g, s), 1/(r + s))
         # return geometric_mean(r * [c] + s * [g]) 
@@ -490,8 +532,37 @@ def priority_scheduling(G, r, s,
                     cross_thresh=0.3,
                     return_schedule=False):
     """
-    Simulates the scheduling of the tasks according to their priorities.
-    """ 
+    Simulates the scheduling of the task graph according to the task priorities.
+
+    Parameters
+    ----------
+    G : DAG
+        Task DAG.
+    r : INT
+        Number of CPUs. 
+    s : INT
+        Number of GPUs.
+    priorities : DICT
+        Task priorities, {task ID : priority}.   
+    sel_policy : STRING, optional
+        Processor selection rule. Default is "EFT" (earliest finish time).
+    lookahead_table : DICT, optional
+        Used if sel_policy == "PEFT".
+    assignment : DICT, optional
+        An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}. Used if sel_policy == "AMT".
+    cross_thresh : FLOAT, optional
+        Cross threshold parameter used in HEFT-NC heuristic. Used if sel_policy == "NC". The default is 0.3.
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
+
+    Returns
+    -------
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+
+    """
     
     delta = lambda source, dest: 0.0 if (source == dest) or (source < r and dest < r) else 1.0
     if sel_policy in ["BL", "FL"]:
@@ -556,7 +627,7 @@ def priority_scheduling(G, r, s,
             best_worker = min(workers, key=lambda w:worker_finish_times[w][1])
         elif sel_policy == "AMT":
             best_worker = min(worker_finish_times, key=lambda w:worker_finish_times[w][1])
-        elif sel_policy == "NC": # TODO: double check this.
+        elif sel_policy == "NC": 
             best_cpu = min(workers[:r], key=lambda w:worker_finish_times[w][1])
             best_gpu = min(workers[r:], key=lambda w:worker_finish_times[w][1])
             weight_min = "c" if G.graph.nodes[task]['weight']["c"] < G.graph.nodes[task]['weight']["g"] else "g"
@@ -624,7 +695,7 @@ def priority_scheduling(G, r, s,
             else:
                 best_worker = best_gpu
                 
-        elif sel_policy in ["FL", "BL"]: # TODO: ugly and slow.
+        elif sel_policy in ["FL", "BL"]: # TODO: slow. 
             children = list(sorted(G.graph.successors(task), key=priorities.get))
             if sel_policy == "FL":
                 poss_workers = workers
@@ -711,12 +782,34 @@ def priority_scheduling(G, r, s,
     mkspan = finish_times[G.top_sort[-1]] # Assumes single exit task.
     if return_schedule:
         return mkspan, schedule 
-    # print(schedule)     
     return mkspan
 
 def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
     """
-    HEFT scheduling heuristic.  
+    Heterogeneous Earliest Finish Time (HEFT).
+
+    Parameters
+    ----------
+    G : DAG
+        Task DAG.
+    r : INT
+        Number of CPUs. 
+    s : INT
+        Number of GPUs.
+    avg_type : STRING, optional
+        Type of average to use. The default is "M" (arithmetic mean).    
+    sel_policy : STRING, optional
+        Processor selection rule. Default is "EFT" (earliest finish time).
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
+
+    Returns
+    -------
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+
     """
     # Compute upward ranks.
     U = G.get_upward_ranks(r, s, avg_type=avg_type)
@@ -725,9 +818,32 @@ def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
         return priority_scheduling(G, r, s, priorities=U, sel_policy=sel_policy, return_schedule=True)
     return priority_scheduling(G, r, s, priorities=U, sel_policy=sel_policy)
 
-def peft(G, r, s, avg_type="M", original=False, return_schedule=False):
+def peft(G, r, s, original=False, avg_type="M", return_schedule=False):
     """
-    PEFT scheduling heuristic.
+    Predict Earliest Finish Time (PEFT).
+
+    Parameters
+    ----------
+    G : DAG
+        Task DAG.
+    r : INT
+        Number of CPUs. 
+    s : INT
+        Number of GPUs.
+    original : BOOL, optional
+        Type of average to use (only needed for . The default is False. 
+    avg_type : STRING, optional
+        Type of average to use for task priorities (and OCT if original == True). The default is "M" (arithmetic mean).    
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
+
+    Returns
+    -------
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+
     """
     
     # Compute optimistic cost table and ranks.
@@ -745,25 +861,28 @@ def peft(G, r, s, avg_type="M", original=False, return_schedule=False):
     
 def cpop(G, r, s, avg_type="M", return_schedule=False):
     """
-    CPOP scheduling heuristic. TODO: see assign.py and update.
+    Critical Path on a Processor (CPOP).
 
     Parameters
     ----------
-    G : TYPE
-        DESCRIPTION.
-    r : TYPE
-        DESCRIPTION.
-    s : TYPE
-        DESCRIPTION.
-    avg_type : TYPE, optional
-        DESCRIPTION. The default is "M".
-    sel_policy : TYPE, optional
-        DESCRIPTION. The default is "AMT".
+    G : DAG
+        Task DAG.
+    r : INT
+        Number of CPUs. 
+    s : INT
+        Number of GPUs.
+    avg_type : STRING, optional
+        Type of average to use to identify critical path. The default is "M" (arithmetic mean).  
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
 
     Returns
     -------
-    None.
-    
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+
     """
     
     # Compute upward and downward ranks.
@@ -771,50 +890,34 @@ def cpop(G, r, s, avg_type="M", return_schedule=False):
     D = G.get_downward_ranks(r, s, avg_type=avg_type)
     ranks = {t : U[t] + D[t] for t in G.top_sort}
     
-    # Identify critical tasks.
-    cp_length = ranks[G.top_sort[0]] # Single entry/exit task.
-    critical_tasks = set(t for t in G.top_sort if abs(ranks[t] - cp_length) < 1e-6)
-    
-    # Decide where to schedule them - almost certainly GPU...
-    total_cpu_cost = sum(G.graph.nodes[cp]['weight']["c"] for cp in critical_tasks)
-    total_gpu_cost = sum(G.graph.nodes[cp]['weight']["g"] for cp in critical_tasks)
+    # Identify critical path.
+    critical_path = G.get_critical_path(cp_type="AVG", avg_type=avg_type, r=r, s=s) 
+    # Compute the assignment.
+    total_cpu_cost = sum(G.graph.nodes[ct]['weight']["c"] for ct in critical_path)
+    total_gpu_cost = sum(G.graph.nodes[ct]['weight']["g"] for ct in critical_path)
     if total_cpu_cost < total_gpu_cost:
-        alpha = {cp : "c" for cp in critical_tasks}
+        alpha = {ct : "c" for ct in critical_path}
     else:
-        alpha = {cp : r for cp in critical_tasks}
-    # Set assignment of all others to be free. TODO: don't like this, but otherwise would have to put check in prio_scheduling...
-    for t in G.top_sort:
-        if t in critical_tasks:
-            continue
-        alpha[t] = None
-    
-    S = priority_scheduling(G, r, s, priorities=ranks, sel_policy="AMT", assignment=alpha) 
-    last = lambda L : L[-1][2] if len(L) else 0.0
-    mkspan = max(last(load) for load in S.values())
-    if return_schedule:
-        return mkspan, S
-    return mkspan
+        alpha = {ct : r for ct in critical_path} # Entry task on CP so any choice will do.             
+    return priority_scheduling(G, r, s, priorities=ranks, sel_policy="AMT", assignment=alpha, return_schedule=return_schedule)     
 
 def summarize_schedule(schedule, r, s):
     """
-    Summarize the schedule.
+    Print the number of tasks assigned to CPUs and GPUs.
 
     Parameters
     ----------
-    schedule : TYPE
-        DESCRIPTION.
+    schedule : DICT
+        A complete schedule.
 
     Returns
     -------
     None.
 
     """
-    
-    # Number of tasks on CPU and GPU.
     ncpu_tasks = sum(len(load) for worker, load in schedule.items() if worker < r)
     ngpu_tasks = sum(len(load) for worker, load in schedule.items() if worker >= r)    
-    ntasks = ncpu_tasks + ngpu_tasks
-    
+    ntasks = ncpu_tasks + ngpu_tasks    
     print("Number of tasks on CPU : {} / {} ({}%)".format(ncpu_tasks, ntasks, 100*ncpu_tasks/ntasks))
     print("Number of tasks on GPU : {} / {} ({}%)".format(ngpu_tasks, ntasks, 100*ngpu_tasks/ntasks))
     
