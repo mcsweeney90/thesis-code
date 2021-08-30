@@ -1,6 +1,6 @@
-# chapter3
+# The critical path in heterogeneous scheduling.
 
-The critical path in heterogeneous scheduling.
+All of the main classes and functions can be found in `src.py`. The directories contain the scripts used to generate results and analyze them (e.g., make plots).  
 
 ## Navigation
 
@@ -10,7 +10,7 @@ The critical path in heterogeneous scheduling.
 
 `example` : Example used in earlier sections of chapter. 
 
-`src.py` : Simulator source code.
+`src.py` : Main file containing all the classes and functions used by the various scripts.
 
 
 

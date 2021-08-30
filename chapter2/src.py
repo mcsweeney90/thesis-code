@@ -26,7 +26,6 @@ class DAG:
         Returns
         -------
         None.
-
         """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
@@ -46,7 +45,6 @@ class DAG:
         Returns
         -------
         None.
-
         """              
         runs = len(timings[nb]["G"]["c"]) # Assumes they're all the same length.        
         for task in self.top_sort:
@@ -84,7 +82,6 @@ class DAG:
         Returns
         -------
         None.
-
         """
         
         # Determine shape and scale parameters for the CPU and GPU distributions.
@@ -135,8 +132,7 @@ class DAG:
             
         Notes
         ----------
-        Couldn't just use average function (see below) because of how edge weights are stored. Also more efficient.         
-        
+        Couldn't just use average function (see below) because of how edge weights are stored. Also more efficient.   
         """
         
         d = self.graph[parent][child]['weight']
@@ -200,7 +196,6 @@ class DAG:
         -------
         ranks : DICT
             {Task ID : rank}.
-
         """
         ranks = {}
         backward_traversal = list(reversed(self.top_sort))
@@ -230,7 +225,6 @@ class DAG:
         -------
         ranks : DICT
             {Task ID : rank}.
-
         """
         ranks = {}
         for t in self.top_sort:
@@ -258,7 +252,6 @@ class DAG:
         -------
         OCT : DICT
             {Task ID : {Worker ID : optimistic cost, ...}, ...}.
-
         """
         
         worker_types = ["c", "g"]
@@ -295,7 +288,6 @@ class DAG:
         Notes
         -------
         Unlike above, r and s not required since don't use average values for edge weight.
-
         """
         
         worker_types = ["c", "g"]
@@ -339,7 +331,6 @@ class DAG:
         -------
         critical_path : LIST
             List of critical tasks.
-
         """
         
         if cp_type in ["avg", "AVG"]:
@@ -409,7 +400,6 @@ class DAG:
         -------
         FLOAT
             The lower bound on the makespan.
-
         """      
         path_bound = min(self.optimistic_cost_table(include_current=True)[self.top_sort[0]].values()) 
         min_work = sum(min(self.graph.nodes[t]['weight'].values()) for t in self.top_sort)
@@ -424,7 +414,6 @@ class DAG:
         -------
         FLOAT
             The minimal serial time.
-
         """       
         cpu_time = sum(self.graph.nodes[t]['weight']["c"] for t in self.top_sort)
         gpu_time = sum(self.graph.nodes[t]['weight']["g"] for t in self.top_sort)
@@ -447,7 +436,6 @@ class DAG:
         -------
         FLOAT
             The CCR.
-
         """                
         exp_total_compute = sum(average(c=self.graph.nodes[t]['weight']["c"], g=self.graph.nodes[t]['weight']["g"], r=r, s=s, avg_type=avg_type) 
                                 for t in self.top_sort)
@@ -486,7 +474,6 @@ def average(c, g, r=1, s=1, avg_type="M"):
     -------
     FLOAT
         The average value.
-
     """
     
     if avg_type in ["M", "m"]:
@@ -561,7 +548,6 @@ def priority_scheduling(G, r, s,
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
-
     """
     
     delta = lambda source, dest: 0.0 if (source == dest) or (source < r and dest < r) else 1.0
@@ -809,7 +795,6 @@ def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
-
     """
     # Compute upward ranks.
     U = G.get_upward_ranks(r, s, avg_type=avg_type)
@@ -843,7 +828,6 @@ def peft(G, r, s, original=False, avg_type="M", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
-
     """
     
     # Compute optimistic cost table and ranks.
@@ -882,7 +866,6 @@ def cpop(G, r, s, avg_type="M", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
-
     """
     
     # Compute upward and downward ranks.
@@ -913,7 +896,6 @@ def summarize_schedule(schedule, r, s):
     Returns
     -------
     None.
-
     """
     ncpu_tasks = sum(len(load) for worker, load in schedule.items() if worker < r)
     ngpu_tasks = sum(len(load) for worker, load in schedule.items() if worker >= r)    

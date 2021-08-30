@@ -15,7 +15,18 @@ class DAG:
     Represents a task graph.
     """
     def __init__(self, graph):
-        """Graph is a NetworkX digraph with {Processor ID : float} node weights. Usually output by functions elsewhere..."""
+        """
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph
+            DAG topology.
+
+        Returns
+        -------
+        None.
+        """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
         self.size = len(self.top_sort)
@@ -31,8 +42,7 @@ class DAG:
                              ccr,
                              vproc=1.0, 
                              vrel=1.0,
-                             vband=1.0
-                             ):
+                             vband=1.0):
         """
         Set weights for Cholesky graphs.
 
@@ -46,7 +56,6 @@ class DAG:
         Returns
         -------
         None.
-
         """
         
         # Set DAG as weighted.
@@ -84,23 +93,20 @@ class DAG:
                            comp_params=None,
                            vband=1.0,
                            muccr=0.1,
-                           vccr=1.0
-                           ):
+                           vccr=1.0):
         """
-        TODO: - assert statements to check correct inputs.
-              - setting edge costs far too slow.
+        TODO: setting edge costs far too slow.
 
         Parameters
         ----------
         nprocessors : TYPE
             DESCRIPTION.
         method : TYPE, optional
-            DESCRIPTION. The default is "RB".
+            DESCRIPTION. The default is "CNB".
 
         Returns
         -------
         None.
-
         """
         
         # Set DAG as weighted. Do this after in case of failure?
@@ -136,7 +142,7 @@ class DAG:
                 self.graph.nodes[t]['weight'] = costs[i]             
             
         elif comp_method in ["cnb", "CNB"]:
-            rtask, rmach, mu, V = comp_params # check validity?
+            rtask, rmach, mu, V = comp_params 
             # Do corrections.
             n1 = 1 + (rtask - 2*rtask*rmach + rmach)*V**2 - rtask*rmach
             n2 = (rtask - rmach)**2 * V**4 + 2*(rtask*(rmach-1)**2 + rmach*(rtask-1)**2)*V**2 + (rtask*rmach - 1)**2
@@ -154,10 +160,10 @@ class DAG:
                 self.graph.nodes[t]['weight'] = costs[i]  
                 
         # Set the communication costs.
-        # TODO: could probably vectorize a lot of this...
+        # TODO: too slow.
         # Bandwidths.
         B = np.random.gamma(1/vband**2, vband**2, size=(self.nworkers, self.nworkers))
-        B_rep_sum = sum(np.reciprocal(B[np.triu_indices(B.shape[0], k=1)])) # TODO: think it's fine but maybe double check.
+        B_rep_sum = sum(np.reciprocal(B[np.triu_indices(B.shape[0], k=1)])) 
         # Set the actual communication costs.
         ccrs = np.random.gamma(1/vccr**2, muccr*vccr**2, size=self.size)     
         for t in self.top_sort[:-1]: # Omit final task...
@@ -173,7 +179,7 @@ class DAG:
                         
     def set_example_weights(self, nprocessors, max_cost=10):
         """
-        TODO.
+        Set weights randomly for small example graphs. Not used anywhere.
 
         Parameters
         ----------
@@ -183,10 +189,9 @@ class DAG:
         Returns
         -------
         None.
-
         """
         
-        # Set DAG as weighted. Do this after in case of failure?
+        # Set DAG as weighted. 
         self.weighted = True
         self.workers = list(range(nprocessors))
         self.nworkers = nprocessors
@@ -223,7 +228,7 @@ class DAG:
         
     def task_average(self, task, avg_type="M"):
         """
-        Quick average calculator.
+        Calculate average task weight. 
         """
 
         data = self.graph.nodes[task]['weight']       
@@ -257,7 +262,7 @@ class DAG:
         
     def edge_average(self, parent=None, child=None, avg_type="M"):
         """
-        TODO.
+        Calculate edge average (separate function needed to above).
 
         Parameters
         ----------
@@ -270,8 +275,7 @@ class DAG:
 
         Returns
         -------
-        None.
-
+        TODO.
         """                
         
         if self.comm_costs is not None:
@@ -326,7 +330,19 @@ class DAG:
         raise ValueError('Unrecognized avg_type!')  
                 
     def get_upward_ranks(self, avg_type="M"): 
-        """TODO."""
+        """
+        Compute upward ranks for all tasks according to the input average type.
+
+        Parameters
+        ---------- 
+        avg_type : STRING, optional
+            Type of average to use. The default is "M".
+
+        Returns
+        -------
+        ranks : DICT
+            {Task ID : rank}.
+        """
         
         ranks = {}
         backward_traversal = list(reversed(self.top_sort))
@@ -352,7 +368,17 @@ class DAG:
     
     def get_downward_ranks(self, avg_type="M"): 
         """
-        Downward ranks.
+        Compute downward ranks for all tasks according to the input average type.
+
+        Parameters
+        ---------- 
+        avg_type : STRING, optional
+            Type of average to use. The default is "M".
+
+        Returns
+        -------
+        ranks : DICT
+            {Task ID : rank}.
         """
         ranks = {}
         if self.comm_costs is not None and avg_type not in ["B", "b", "W", "w", "HM", "hm"]:
@@ -376,7 +402,7 @@ class DAG:
     
     def optimistic_critical_path(self, pessimistic=False, return_path=False):
         """
-        As defined in PEFT heuristic.
+        Modified version of Optimistic Cost Table defined in PEFT heuristic (without the edge average).
         """
         
         if return_path:
@@ -395,7 +421,7 @@ class DAG:
                     worker_values = {v : C[child][v] + self.comm_cost(task, child, w, v) for v in self.workers}
                     chosen = max(worker_values, key=worker_values.get) if pessimistic else min(worker_values, key=worker_values.get)
                     child_values[child] = (chosen, worker_values[chosen])
-                if not child_values: # TODO: do stuff?
+                if not child_values: 
                     continue
                 max_child = max(child_values, key=lambda s : child_values[s][1])
                 C[task][w] += child_values[max_child][1]
@@ -416,7 +442,14 @@ class DAG:
         return C
     
     def makespan_lower_bound(self):
-        """Compute a lower bound on the makespan."""
+        """
+        Computes a lower bound on the schedule makespan.
+
+        Returns
+        -------
+        FLOAT
+            The lower bound on the makespan.
+        """  
         path_bound = min(self.optimistic_critical_path()[self.top_sort[0]].values())        
         min_work = sum(min(self.graph.nodes[t]['weight']) for t in self.top_sort)
         work_bound = min_work / self.nworkers        
@@ -424,31 +457,31 @@ class DAG:
     
     def minimal_serial_time(self):
         """
-        Classic minimal serial time.
+        Returns the minimal serial time (MST).
 
         Returns
         -------
-        None.
-
-        """
+        FLOAT
+            The minimal serial time.
+        """  
         
         minimal_worker_times = sum(self.graph.nodes[t]['weight'] for t in self.top_sort) # Assumes weights are numpy arrays.
         return min(minimal_worker_times)
         
     def ccr(self, avg_type="M"):
         """
-        TODO. Rename this?
+        Returns the communication-to-computation ratio (CCR) of the DAG, as defined by Equation 2.2.
 
         Parameters
         ----------
-        avg_type : TYPE, optional
-            DESCRIPTION. The default is "M".
+        avg_type : STRING, optional
+            The average type to use (e.g., arithmetic mean). The default is "M".
 
         Returns
         -------
-        None.
-
-        """
+        FLOAT
+            The CCR.
+        """ 
         
         exp_total_compute = sum(self.task_average(t, avg_type=avg_type) for t in self.top_sort)
         if self.comm_costs is not None and avg_type not in ["HM", "hm"]:
@@ -459,7 +492,8 @@ class DAG:
     
     def monte_carlo(self, realizations, pmf="A", times=False):
         """
-        TODO. Want: path which is most frequently critical, upward rank distros, criticality. 
+        Monte Carlo method. 
+        TODO: expand.
 
         Parameters
         ----------
@@ -573,8 +607,26 @@ def priority_scheduling(G,
                     critical_assignment=None,
                     return_schedule=False):
     """
-    Simulates the scheduling of the tasks according to their priorities.
-    """ 
+    Simulates the scheduling of the task graph according to the task priorities.
+
+    Parameters
+    ----------
+    G : DAG
+        Task DAG.
+    priorities : DICT
+        Task priorities, {task ID : priority}.  
+    critical_assignment : DICT, optional
+        An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}.
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
+
+    Returns
+    -------
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    """
         
     # Build schedule. Keep track of finish times and where tasks are scheduled.
     schedule = {w : [] for w in G.workers}
@@ -648,7 +700,23 @@ def priority_scheduling(G,
 
 def heft(G, avg_type="M", return_schedule=False):
     """
-    HEFT scheduling heuristic.  
+    Heterogeneous Earliest Finish Time (HEFT).
+
+    Parameters
+    ----------
+    G : DAG
+        Task DAG.
+    avg_type : STRING, optional
+        Type of average to use. The default is "M" (arithmetic mean).   
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
+
+    Returns
+    -------
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
     """
     # Compute upward ranks.
     U = G.get_upward_ranks(avg_type=avg_type)
@@ -657,23 +725,27 @@ def heft(G, avg_type="M", return_schedule=False):
 
 def cpop(G, priorities, critical_path, return_schedule=False):
     """
-    CPOP scheduling heuristic. 
-    Notes: always used in contexts with path and priorities already computed.
+    Critical Path on a Processor (CPOP).
+    Note always used in contexts with path and priorities already computed.
 
     Parameters
     ----------
-    G : TYPE
-        DESCRIPTION.
-    avg_type : TYPE, optional
-        DESCRIPTION. The default is "M".
-    sel_policy : TYPE, optional
-        DESCRIPTION. The default is "AMT".
+    G : DAG
+        Task DAG.
+    priorities : DICT
+        Task priorities, {task ID : priority}.  
+    critical_path : LIST
+        Tasks on the critical path.
+    return_schedule : BOOL, optional
+        If True, return the schedule. The default is False.
 
     Returns
     -------
-    None.
-    
-    """      
+    mkspan : FLOAT
+        The schedule makespan.
+    schedule : DICT, optional
+        If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    """     
         
     # Decide where to schedule critical tasks.
     worker_serial_time = lambda w : sum(G.graph.nodes[cp]['weight'][w] for cp in critical_path)
@@ -681,62 +753,3 @@ def cpop(G, priorities, critical_path, return_schedule=False):
     alpha = {cp : critical_worker for cp in critical_path}        
     # Simulate to get the schedule and return it.
     return priority_scheduling(G, priorities=priorities, critical_assignment=alpha, return_schedule=return_schedule)
-
-# def cpop(G, critical_path=None, cp_type="AVG", avg_type="M", return_schedule=False):
-#     """
-#     CPOP scheduling heuristic. 
-#     Notes: always uses upward rank rather upward + downward for task prios since that works better.
-
-#     Parameters
-#     ----------
-#     G : TYPE
-#         DESCRIPTION.
-#     avg_type : TYPE, optional
-#         DESCRIPTION. The default is "M".
-#     sel_policy : TYPE, optional
-#         DESCRIPTION. The default is "AMT".
-
-#     Returns
-#     -------
-#     None.
-    
-#     """
-    
-#     # Get the critical path...
-#     if critical_path is not None:
-#         U = G.get_upward_ranks(avg_type="M") # Always use upward rank when using MC critical path...
-#     else:
-#         if cp_type in ["AVG", "avg"]:
-#             U = G.get_upward_ranks(avg_type=avg_type)
-#             D = G.get_downward_ranks(avg_type=avg_type)
-#             ranks = {t : U[t] + D[t] for t in G.top_sort}   
-                        
-#             # Identify a single critical path (unless all_critical_tasks) - randomly if there are multiple...
-#             cp_length = ranks[G.top_sort[0]] # Single entry/exit task.            
-#             critical_path = []
-#             ct = G.top_sort[0]
-#             while True:
-#                 children = list(G.graph.successors(ct))
-#                 if not children:
-#                     break
-#                 for child in children:
-#                     if abs(ranks[child] - cp_length) < 1e-6:
-#                         critical_path.append(child)
-#                         ct = child
-#                         break 
-#         elif cp_type in ["opt", "OPT"]: 
-#             C, critical_path = G.optimistic_critical_path(return_path=True)
-#             U = {t : min(C[t].values()) for t in G.top_sort} 
-#         elif cp_type in ["pes", "PES"]:
-#             C, critical_path = G.optimistic_critical_path(pessimistic=True, return_path=True)
-#             U = {t : max(C[t].values()) for t in G.top_sort}
-#         else:
-#             raise ValueError('Unrecognized cp_type!')    
-        
-#     # Decide where to schedule critical tasks.
-#     worker_serial_time = lambda w : sum(G.graph.nodes[cp]['weight'][w] for cp in critical_path)
-#     critical_worker = min(G.workers, key=worker_serial_time)
-#     alpha = {cp : critical_worker for cp in critical_path}
-        
-#     # Simulate to get the schedule and return it.
-#     return priority_scheduling(G, priorities=U, critical_assignment=alpha, return_schedule=return_schedule)

@@ -21,7 +21,9 @@ from src import DAG, priority_scheduling, heft, cpop
 avgs = ["M", "MD", "B", "SB", "W", "SW", "HM", "SHM", "GM", "SGM", "R", "D", "NC", "SD"]
 
 def get_random_graph(ntasks, single_source=True, single_sink=True):
-    """TODO."""    
+    """
+    Generate a random graph. Not actually used.
+    """    
 
     G1 = nx.gnp_random_graph(ntasks, 0.1, directed=True)
     G = nx.DiGraph([(u,v) for (u,v) in G1.edges() if u<v])
@@ -53,7 +55,7 @@ for n, kids in info.items():
 # =============================================================================
 
 # D = DAG(G)
-# # Set weights randomly until we get desired behaviour..
+# # Set weights randomly until we get desired behaviour for example.
 # for _ in range(1000):
 #     D.set_example_weights(nprocessors=2)
 #     # Compute averaged longest paths.
@@ -109,10 +111,10 @@ for n, kids in info.items():
 # Get the saved graph.
 # =============================================================================
 
-with open('example.dill', 'rb') as file:
-    D = dill.load(file)
-with open('mkspans.dill', 'rb') as file:
-    mkspans = dill.load(file)
+# with open('example.dill', 'rb') as file:
+#     D = dill.load(file)
+# with open('mkspans.dill', 'rb') as file:
+#     mkspans = dill.load(file)
 # print(mkspans)
     
 # =============================================================================
@@ -309,61 +311,61 @@ with open('mkspans.dill', 'rb') as file:
 # plt.close(fig) 
 
 # =============================================================================
-# Disjunctive graph (for Chapter 4).
+# Schedule graph (for Chapter 4).
 # =============================================================================
 
-J = nx.DiGraph()
-info = {1:[2, 3, 4], 2:[4, 5], 3:[5, 8], 4:[5], 5:[6, 7, 8], 6:[7, 9], 7:[9], 8:[9]}
-for n, kids in info.items():
-    for c in kids:
-        J.add_edge(n, c)  
-proper_edges = list(G.edges())
-dis_edges = [(2, 4), (3, 8), (6, 7)]  
-node_weights = {1:2, 2:7, 3:3, 4:6, 5:5, 6:1, 7:1, 8:3, 9:4}
-edge_weights = {(1, 3):1, (3, 5):1, (5, 8):8, (6, 9):4, (7, 9):9}
+# J = nx.DiGraph()
+# info = {1:[2, 3, 4], 2:[4, 5], 3:[5, 8], 4:[5], 5:[6, 7, 8], 6:[7, 9], 7:[9], 8:[9]}
+# for n, kids in info.items():
+#     for c in kids:
+#         J.add_edge(n, c)  
+# proper_edges = list(G.edges())
+# dis_edges = [(2, 4), (3, 8), (6, 7)]  
+# node_weights = {1:2, 2:7, 3:3, 4:6, 5:5, 6:1, 7:1, 8:3, 9:4}
+# edge_weights = {(1, 3):1, (3, 5):1, (5, 8):8, (6, 9):4, (7, 9):9}
 
-# Draw graph the labelled graph.
-plt.figure(figsize=(14,14))
-pos = graphviz_layout(J, prog='dot')   
-# Draw the topology. 
-nx.draw_networkx_nodes(J, pos, node_color='#348ABD', node_size=2000, alpha=0.5)
-nx.draw_networkx_edges(J, pos, edgelist=proper_edges, width=1.0)
-nx.draw_networkx_edges(J, pos, edgelist=dis_edges, width=3.0, style='--')
+# # Draw graph the labelled graph.
+# plt.figure(figsize=(14,14))
+# pos = graphviz_layout(J, prog='dot')   
+# # Draw the topology. 
+# nx.draw_networkx_nodes(J, pos, node_color='#348ABD', node_size=2000, alpha=0.5)
+# nx.draw_networkx_edges(J, pos, edgelist=proper_edges, width=1.0)
+# nx.draw_networkx_edges(J, pos, edgelist=dis_edges, width=3.0, style='--')
 
-# Draw the node labels.
-nx.draw_networkx_labels(J, pos, font_size=18, font_weight='bold')
+# # Draw the node labels.
+# nx.draw_networkx_labels(J, pos, font_size=18, font_weight='bold')
 
-#Draw the node weights.
-alt_pos = {}
-for p in pos:
-    if p in [1, 4, 6, 9]:
-        alt_pos[p] = (pos[p][0] + 6, pos[p][1])
-    elif p in [2, 3, 7]:
-        alt_pos[p] = (pos[p][0], pos[p][1] + 21)
-    elif p in [5]:
-        alt_pos[p] = (pos[p][0] - 6, pos[p][1])
-    else:
-        alt_pos[p] = (pos[p][0], pos[p][1] - 25)            
-nx.draw_networkx_labels(J, alt_pos, node_weights, font_size=18, font_weight='bold', font_color='#E24A33')
+# #Draw the node weights.
+# alt_pos = {}
+# for p in pos:
+#     if p in [1, 4, 6, 9]:
+#         alt_pos[p] = (pos[p][0] + 6, pos[p][1])
+#     elif p in [2, 3, 7]:
+#         alt_pos[p] = (pos[p][0], pos[p][1] + 21)
+#     elif p in [5]:
+#         alt_pos[p] = (pos[p][0] - 6, pos[p][1])
+#     else:
+#         alt_pos[p] = (pos[p][0], pos[p][1] - 25)            
+# nx.draw_networkx_labels(J, alt_pos, node_weights, font_size=18, font_weight='bold', font_color='#E24A33')
 
-# # Draw the edge weights.    
-nx.draw_networkx_edge_labels(J, pos, font_size=18, edge_labels=edge_weights, font_weight='bold', font_color='#E24A33')
+# # # Draw the edge weights.    
+# nx.draw_networkx_edge_labels(J, pos, font_size=18, edge_labels=edge_weights, font_weight='bold', font_color='#E24A33')
 
-# Calculate and draw the longest path.
-for p, c in J.edges():
-    J[p][c]['weight'] = node_weights[p]
-    if c == 9:
-        J[p][c]['weight'] += node_weights[c]
-    try:
-        J[p][c]['weight'] += edge_weights[(p, c)]
-    except KeyError:
-        pass
-lp = nx.algorithms.dag.dag_longest_path(J)
-crit_edges = []
-for i, t in enumerate(lp[1:]):
-    crit_edges.append((lp[i], t)) 
-nx.draw_networkx_edges(G, pos, edgelist=crit_edges, edge_color='#E24A33', alpha=0.5, width=20.0)
+# # Calculate and draw the longest path.
+# for p, c in J.edges():
+#     J[p][c]['weight'] = node_weights[p]
+#     if c == 9:
+#         J[p][c]['weight'] += node_weights[c]
+#     try:
+#         J[p][c]['weight'] += edge_weights[(p, c)]
+#     except KeyError:
+#         pass
+# lp = nx.algorithms.dag.dag_longest_path(J)
+# crit_edges = []
+# for i, t in enumerate(lp[1:]):
+#     crit_edges.append((lp[i], t)) 
+# nx.draw_networkx_edges(G, pos, edgelist=crit_edges, edge_color='#E24A33', alpha=0.5, width=20.0)
 
-plt.axis("off") 
-plt.savefig('disjunctive.png', bbox_inches='tight') 
+# plt.axis("off") 
+# plt.savefig('disjunctive.png', bbox_inches='tight') 
 
