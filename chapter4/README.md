@@ -1,6 +1,6 @@
-# chapter4
+# Predicting schedule length under uncertainty.
 
-Predicting schedule length under uncertainty.
+All of the main classes and functions can be found in `src.py`. The directories contain the scripts used to generate results and analyze them (e.g., make plots).  
 
 ## Navigation
 
@@ -14,7 +14,7 @@ Predicting schedule length under uncertainty.
 
 `stg` : All of the above repeated for the STG set. 
 
-`src.py` : Simulator source code.
+`src.py` : Main file containing all the classes and functions used by the various scripts.
 
 
 

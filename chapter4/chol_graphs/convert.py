@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Convert NetworkX graphs to ScaDAGs.
+Convert NetworkX schedule graphs from Chapter 2 to StochDAGs and save.
 """
 
 import dill, pathlib
@@ -11,7 +11,7 @@ import sys
 sys.path.append("../")
 from src import RV, StochDAG
 
-ntasks = list(range(5, 51, 5))
+ntasks = list(range(5, 11, 5))
 for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
     print(nt)
     chol_load_path = '../../chapter2/chapter4/nb{}s{}/'.format(nb, s) # TODO: double check this.
@@ -38,7 +38,7 @@ for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
             A[u][v]['weight'] = 0.0
     
     G = StochDAG(A)
-    # Save the data.
-    with open('{}/{}.dill'.format(chol_save_path, nt), 'wb') as handle:
-        dill.dump(G, handle)
+    # Save for future use. (Commented out by default to prevent overwriting data used for thesis.)
+    # with open('{}/{}.dill'.format(chol_save_path, nt), 'wb') as handle:
+    #     dill.dump(G, handle)
             

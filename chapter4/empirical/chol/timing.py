@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Timing MC method. 
+Time how long it takes to generate emprirical longest path distributions using MC method. 
 """
 
 import dill
@@ -17,14 +17,14 @@ runs = 10
 
 data = []
 ntasks = list(range(5, 51, 5))
-for nt, nb, s in product(ntasks, [128, 1024], [1, 4]): 
+for N, nb, s in product(ntasks, [128, 1024], [1, 4]): 
     chol_load_path = '../../chol_graphs/nb{}s{}'.format(nb, s)
-    with open('{}/{}.dill'.format(chol_load_path, nt), 'rb') as file:
+    with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
         R = dill.load(file)
     G = StochDAG(R)
         
     for dist in ["normal", "gamma", "uniform"]:
-        graph_data = {"n" : G.size, "nt" : nt, "nb" : nb, "s" : s, "DIST" : dist}
+        graph_data = {"n" : G.size, "N" : N, "nb" : nb, "s" : s, "DIST" : dist}
         
         for samps in [10, 100, 1000, 10000, 100000]:
             start = timer() 

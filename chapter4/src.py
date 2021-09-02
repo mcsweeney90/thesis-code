@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-In progress - copying over from old repo
+Functions and classes used to generate results for Chapter 4, "Predicting schedule length under uncertainty". 
 """
 
 import networkx as nx
@@ -16,11 +16,8 @@ from sys import getsizeof
 class RV:
     """
     Random variable class.
-    Notes:
-        - Defined by only mean and variance so can in theory be from any distribution but some functions
-          e.g., addition and multiplication assume (either explicitly or implicitly) RV is Gaussian.
-          (Addition/mult only done when RV represents a finish time/longest path estimate so is assumed to be
-          at least roughly normal anyway.)
+    Defined only by mean and variance so can in theory be from any distribution but e.g., addition and multiplication assume
+    RV is Gaussian. 
     """
     def __init__(self, mu=0.0, var=0.0): 
         self.mu = mu
@@ -55,19 +52,34 @@ class RV:
 class StochDAG:
     """Represents a graph with stochastic node and edge weights."""
     def __init__(self, graph):
-        """Graph is an NetworkX digraph with RV nodes and edge weights. Usually output by functions elsewhere..."""
+        """
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph with RV node and edge weights
+            DAG topology and weights.
+
+        Returns
+        -------
+        None.
+        """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
         self.size = len(self.top_sort)
         
-    def set_random_weights(self, exp_cov):
+    def set_random_weights(self, mu_cov):
         """
         Set random weights for STG DAGs.
 
         Parameters
         ----------
-        cov : TYPE
-            DESCRIPTION.
+        mu_cov : FLOAT
+            Mean coefficient of variation.
+        
+        Notes
+        -------
+        1. mu_cov is mean coefficient of variation of the weights but standard deviation always equal 0.1*mu_cov.
 
         Returns
         -------
@@ -78,8 +90,8 @@ class StochDAG:
         task_means = np.random.uniform(1, 100, self.size)
         edge_means = np.random.uniform(1, 100, self.graph.number_of_edges())
         
-        task_covs = np.random.gamma(100, exp_cov*0.01, self.size)
-        edge_covs = np.random.gamma(100, exp_cov*0.01, self.graph.number_of_edges())
+        task_covs = np.random.gamma(100, mu_cov*0.01, self.size) # standard deviation always equal 0.1*mu_cov.
+        edge_covs = np.random.gamma(100, mu_cov*0.01, self.graph.number_of_edges())
                                 
         # Task weights.
         for i, t in enumerate(self.top_sort):
@@ -97,7 +109,13 @@ class StochDAG:
         """
         Count the number of paths through DAG.
         (Typically only used to show how enormous and impractical it is.)
-        """        
+
+        Returns
+        -------
+        INT
+            Number of distinct paths through DAG.
+
+        """      
         paths = {}
         for t in self.top_sort:
             parents = list(self.graph.predecessors(t))
@@ -109,7 +127,24 @@ class StochDAG:
     
     def get_scalar_graph(self, scal_func=lambda r : r.mu, aoa=True, johnson=False):
         """
-        Return a ScaDAG object...
+        Return a ScaDAG object by applying scal_func to all the weights.
+
+        Parameters
+        ----------
+        scal_func : LAMBDA, optional
+            The scalarization function to apply to weight RVs. The default is lambda r : r.mu.
+        aoa : BOOL, optional
+            Activity-on-arc - i.e., task weights are incorporated into edge weights. This is useful for exploiting some Networkx functions.
+            The default is True.
+        johnson : BOOL, optional
+            Transform scalar graph as in Johnson's algorithm to convert longest to shortest path function. Again, useful for compatability
+            with some Networkx functions. The default is False.
+
+        Returns
+        -------
+        ScaDAG
+            Graph with scalar weights.
+
         """
         
         # Copy the topology.
@@ -154,10 +189,20 @@ class StochDAG:
             
     def CPM(self, variance=False, full=False):
         """
-        Returns the classic PERT-CPM bound on the expected value of the longest path.
-        If variance == True, also returns the variance of this path to use as a rough estimate
-        of the longest path variance.
-        TODO: convert to ScaDAG method and compare timing.
+        Classic PERT-CPM bound on the expected value of the longest path.
+
+        Parameters
+        ----------
+        variance : BOOL, optional
+            If True, also returns the variance of the path with maximal expected value. The default is False.
+        full : BOOL, optional
+            If True, return CPM bounds for all tasks not just the exit task (i.e., through the whole DAG). The default is False.
+
+        Returns
+        -------
+        FLOAT
+            CPM lower bound on the expected value.
+
         """
         C = {}       
         for t in self.top_sort:
@@ -189,12 +234,19 @@ class StochDAG:
     
     def kamburowski(self):
         """
-        TODO: take another look at this, quite slow.
-        Returns:
-            - lm, lower bounds on the mean. Dict in the form {task ID : m_underline}.
-            - um, upper bounds on the mean. Dict in the form {task ID : m_overline}.
-            - ls, lower bounds on the variance. Dict in the form {task ID : s_underline}.
-            - us, upper bounds on the variance. Dict in the form {task ID : s_overline}.
+        Kamburowski's bounds on the mean and variance.
+
+        Returns
+        -------
+        FLOAT
+            Lower bound on the mean.
+        FLOAT
+            Upper bound on the mean.
+        FLOAT
+            Lower bound on the variance.
+        FLOAT
+            Upper bound on the variance.
+
         """
         lm, um, ls, us = {},{}, {}, {}
         for t in self.top_sort:
@@ -254,13 +306,24 @@ class StochDAG:
 
     def sculli(self, reverse=False):
         """
-        Sculli's method for estimating the makespan of a fixed-cost stochastic DAG.
+        Sculli's method for estimating the longest path distribution for a DAG with stochastic weights.
         'The completion time of PERT networks,'
-        Sculli (1983).    
+        Sculli (1983).  
+
+        Parameters
+        ----------
+        reverse : BOOL, optional
+            If True, reverses the DAG before applying method. The default is False.
+
+        Returns
+        -------
+        RV
+            The approximated longest path distribution (i.e., its mean and variance).
+
         """
         
         if reverse:
-            return StochDAG(self.graph.reverse()).sculli() # TODO: does this copy the weights?
+            return StochDAG(self.graph.reverse()).sculli() 
         
         L = {}
         for t in self.top_sort:
@@ -278,17 +341,31 @@ class StochDAG:
     
     def corLCA(self, reverse=False):
         """
-        CorLCA heuristic for estimating the makespan of a fixed-cost stochastic DAG.
+        CorLCA heuristic for estimating the longest path distribution for a DAG with stochastic weights.
         'Correlation-aware heuristics for evaluating the distribution of the longest path length of a DAG with random weights,' 
-        Canon and Jeannot (2016).     
-        Assumes single entry and exit tasks. 
-        This is a fast version that doesn't explicitly construct the correlation tree.
-        """    
+        Canon and Jeannot (2016). 
+
+        Parameters
+        ----------
+        reverse : BOOL, optional
+            If True, reverses the DAG before applying method. The default is False.
+        
+        Notes
+        -------
+        1. Assume single source and sink.
+        2. Orginally explicitly constructed correlation tree as a DiGraph but this version is faster.
+        3. Dominant parents identified by comparing expected values.
+
+        Returns
+        -------
+        RV
+            The approximated longest path distribution (i.e., its mean and variance).
+
+        """  
         
         if reverse:
             return StochDAG(self.graph.reverse()).corLCA() 
         
-        # Dominant ancestors dict used instead of DiGraph for the common ancestor queries. 
         # L represents longest path estimates. V[task ID] = variance of longest path of dominant ancestors (used to estimate rho).
         L, V, dominant_ancestors = {}, {}, {}
         for t in self.top_sort:     # Traverse the DAG in topological order. 
@@ -326,7 +403,7 @@ class StochDAG:
                     parent_sd = sqrt(parent_sd) 
                     r = V[lca] / (dom_parent_sd * parent_sd)
                         
-                    # Find dominant parent for the maximization.
+                    # Find dominant parent for the maximization (by comparing expected values).
                     if pst.mu > st.mu: 
                         dom_parent = parent
                         dom_parent_ancs = set(dominant_ancestors[parent])
@@ -349,7 +426,25 @@ class StochDAG:
     def monte_carlo(self, samples, dist="NORMAL"):
         """
         Monte Carlo method to estimate the distribution of the longest path. 
-        """   
+
+        Parameters
+        ----------
+        samples : INT
+            Number of realizations of entire graph to do.
+        dist : STRING, optional
+            The probability distribution that the weights follow (assumed to be the same for all). The default is "NORMAL".
+            
+        Notes
+        -------
+        1. Take absolute values for normal and uniform distributions, although rarely needed because of weight coefficients of variation.
+        2. Can hit memory wall for large graphs and/or numbers of samples, so need to call function repeatedly if that seems likely.  
+
+        Returns
+        -------
+        LIST/NUMPY ARRAY
+            The empirical longest path distribution.
+
+        """  
         mem_limit = virtual_memory().available // 10 # Just a guideline...
         if self.size*samples < mem_limit:   
             L = {}
@@ -379,7 +474,7 @@ class StochDAG:
                             e = abs(np.random.normal(m, self.graph[p][t]['weight'].sd, samples))
                         elif dist in ["G", "g", "GAMMA", "gamma"]:
                             v = self.graph[p][t]['weight'].var
-                            sh, sc = (m * m)/v, v/m # TODO: check this!
+                            sh, sc = (m * m)/v, v/m 
                             e = np.random.gamma(sh, sc, samples)
                         elif dist in ["U", "u", "UNIFORM", "uniform"]:
                             u = sqrt(3) * self.graph[p][t]['weight'].sd
@@ -403,9 +498,28 @@ class StochDAG:
         
     def monte_carlo_paths(self, samples, dist="U"):
         """
-        Uses MC to identify critical paths.  
-        TODO: still no idea why original critical_paths version didn't work...
-        """     
+        Use Monte Carlo method to identify critical paths. 
+
+        Parameters
+        ----------
+        samples : INT
+            Number of realizations of entire graph to do.
+        dist : STRING, optional
+            The probability distribution that the weights follow (assumed to be the same for all). The default is "U".
+            
+        Notes
+        -------
+        1. Take absolute values for normal and uniform distributions, although rarely needed because of weight coefficients of variation.
+        2. Can hit memory wall for large graphs and/or numbers of samples, so need to call function repeatedly if that seems likely. 
+        3. Still not sure why original critical_paths version (commented out) didn't work.
+
+        Returns
+        -------
+        Q : DICT
+            The observed critical paths and their frequencies.
+        E : LIST/NUMPY ARRAY
+            The empirical MC longest path distribution.
+        """      
               
         mem_limit = virtual_memory().available // 10 
         if self.size*samples < mem_limit:   
@@ -413,17 +527,16 @@ class StochDAG:
             critical_parents = {}
             # critical_paths = {}
             for t in self.top_sort:
-                # print("\n{}".format(t))
                 m = self.graph.nodes[t]['weight'].mu
                 if dist in ["N", "n", "NORMAL", "normal"]:  
-                    w = np.random.normal(m, self.graph.nodes[t]['weight'].sd, samples)
+                    w = abs(np.random.normal(m, self.graph.nodes[t]['weight'].sd, samples))
                 elif dist in ["G", "g", "GAMMA", "gamma"]:
                     v = self.graph.nodes[t]['weight'].var
                     sh, sc = (m * m)/v, v/m
                     w = np.random.gamma(sh, sc, samples)
                 elif dist in ["U", "u", "UNIFORM", "uniform"]:
                     u = sqrt(3) * self.graph.nodes[t]['weight'].sd
-                    w = np.random.uniform(-u + m, u + m, samples) 
+                    w = abs(np.random.uniform(-u + m, u + m, samples))
                 parents = list(self.graph.predecessors(t))
                 if not parents:
                     L[t] = w 
@@ -434,14 +547,14 @@ class StochDAG:
                     try:
                         m = self.graph[p][t]['weight'].mu
                         if dist in ["N", "n", "NORMAL", "normal"]: 
-                            e = np.random.normal(m, self.graph[p][t]['weight'].sd, samples)
+                            e = abs(np.random.normal(m, self.graph[p][t]['weight'].sd, samples))
                         elif dist in ["G", "g", "GAMMA", "gamma"]:
                             v = self.graph[p][t]['weight'].var
                             sh, sc = (m * m)/v, v/m 
                             e = np.random.gamma(sh, sc, samples)
                         elif dist in ["U", "u", "UNIFORM", "uniform"]:
                             u = sqrt(3) * self.graph[p][t]['weight'].sd
-                            e = np.random.uniform(-u + m, u + m, samples)  
+                            e = abs(np.random.uniform(-u + m, u + m, samples))
                         pmatrix.append(np.add(L[p], e))
                     except AttributeError:
                         pmatrix.append(L[p]) 
@@ -492,23 +605,43 @@ class StochDAG:
     
     def monte_carlo_paths_with_max(self, path_samples, lp_samples, dist="U"):
         """
-        Modified version of Monte Carlo method. Uses initial MC to identify critical paths, then approximates their maximum. 
-        NOTE: only intended for small numbers of samples (e.g., hits memory wall for 100 samples with largest Cholesky DAG and nb = 1024).
-        """     
+        Use Monte Carlo method to identify critical paths and then approximates their max. Not used anywhere. 
+
+        Parameters
+        ----------
+        path_samples : INT
+            Number of realizations of entire graph to do.
+        lp_samples : INT
+            Number of samples to take when approximating the max.
+        dist : STRING, optional
+            The probability distribution that the weights follow (assumed to be the same for all). The default is "U".
+            
+        Notes
+        -------
+        1. Only intended/works for small numbers of samples (e.g., hits memory wall for 100 samples with largest Cholesky DAG and nb = 1024).
+
+        Returns
+        -------
+        LIST/NUMPY ARRAY
+            Empirical distribution.
+        LIST/NUMPY ARRAY
+            The approximated maximum
+        """   
+        
         L, critical_paths, reals = {}, {}, {}
         
         # Do the traditional MC method with path_samples realizations to identify critical paths.
         for t in self.top_sort:
             m = self.graph.nodes[t]['weight'].mu
             if dist in ["N", "n", "NORMAL", "normal"]:  
-                w = np.random.normal(m, self.graph.nodes[t]['weight'].sd, path_samples)
+                w = abs(np.random.normal(m, self.graph.nodes[t]['weight'].sd, path_samples))
             elif dist in ["G", "g", "GAMMA", "gamma"]:
                 v = self.graph.nodes[t]['weight'].var
                 sh, sc = (m * m)/v, v/m
                 w = np.random.gamma(sh, sc, path_samples)
             elif dist in ["U", "u", "UNIFORM", "uniform"]:
                 u = sqrt(3) * self.graph.nodes[t]['weight'].sd
-                w = np.random.uniform(-u + m, u + m, path_samples) 
+                w = abs(np.random.uniform(-u + m, u + m, path_samples))
             reals[t] = w
             parents = list(self.graph.predecessors(t))
             if not parents:
@@ -520,14 +653,14 @@ class StochDAG:
                 try:
                     m = self.graph[p][t]['weight'].mu
                     if dist in ["N", "n", "NORMAL", "normal"]: 
-                        e = np.random.normal(m, self.graph[p][t]['weight'].sd, path_samples)
+                        e = abs(np.random.normal(m, self.graph[p][t]['weight'].sd, path_samples))
                     elif dist in ["G", "g", "GAMMA", "gamma"]:
                         v = self.graph[p][t]['weight'].var
                         sh, sc = (m * m)/v, v/m 
                         e = np.random.gamma(sh, sc, path_samples)
                     elif dist in ["U", "u", "UNIFORM", "uniform"]:
                         u = sqrt(3) * self.graph[p][t]['weight'].sd
-                        e = np.random.uniform(-u + m, u + m, path_samples)  
+                        e = abs(np.random.uniform(-u + m, u + m, path_samples))
                     pmatrix.append(np.add(L[p], e))
                     reals[(p, t)] = e
                 except AttributeError:
@@ -559,18 +692,19 @@ class StochDAG:
         # Return empirical dist and approximated path maximum.                           
         return L[self.top_sort[-1]], np.amax(data, axis=1)
             
-    def path_length(self, path, expected=False):
+    def path_length(self, path):
         """
-        Return the length of the path.
+        Estimate the length of a path using the CLT - i.e., sum the weight means and variances. Occasionally useful.
 
         Parameters
         ----------
-        path : TYPE
-            DESCRIPTION.
+        path : ITERABLE
+            Iterable of task IDs.
 
         Returns
         -------
-        None.
+        RV
+            The approximate length distribution of the path. 
 
         """
         
@@ -584,18 +718,17 @@ class StochDAG:
 
         Parameters
         ----------
-        paths : TYPE
-            DESCRIPTION.
-        how : TYPE, optional
-            DESCRIPTION. The default is "MC".
-        samples : TYPE, optional
-            DESCRIPTION. The default is None.
-        correlations : TYPE, optional
-            DESCRIPTION. The default is True.
+        paths : ITERABLE
+            The paths to be maximized.
+        samples : INT, optional
+            The number of realizations to perform. The default is 10.
+        correlations : BOOL, optional
+            Consider path correlations or not. The default is True.
 
         Returns
         -------
-        None.
+        LIST/NUMPY ARRAY
+            The approximated empirical longest path distribution.
 
         """
         
@@ -641,19 +774,20 @@ class StochDAG:
     
     def get_dominating_paths(self, p=5, limit=1000):
         """
-        TODO.
+        Get all paths with probability >= p% of being longer than the classic PERT/CPM longest path (i.e., with greatest mean).
 
         Parameters
         ----------
-        p : float/int in [0, 50). 
-            Intuitively, a p value of x retains all paths with >= x% probability of exceeding the path with greatest mean.
+        p : FLOAT/INT. 
+            p in [0, 50). Intuitively, a p value of x retains all paths with >= x% probability of exceeding the path with greatest mean.
+        
+        limit : INT:
+            Maximum number of path candidates. If > limit, return empty set (i.e., algorithm fails).
 
         Returns
         -------
-        None.
+        The set of longest path candidates.
         
-        Notes: values of epsilon >= 0.5 make no sense (maybe put in a check/warning?)
-
         """
         
         # Compute comparison for determining if path is retained.
@@ -688,7 +822,7 @@ class StochDAG:
     
     def get_kdominant_paths(self, k=1000):
         """
-        Alternative to previous function that retains the K most dominant paths.
+        Alternative to previous function that retains the K most dominant paths (i.e., even if they're unlikely to beat the CPM path).
 
         Parameters
         ----------
@@ -697,7 +831,7 @@ class StochDAG:
 
         Returns
         -------
-        None.
+        The set of longest path candidates.
         
         """
                 
@@ -727,16 +861,16 @@ class StochDAG:
     
     def critical_graph(self, paths):
         """
-        TODO.
+        Not used anywhere. Returns another graph only comprising the specified paths.  
 
         Parameters
         ----------
-        paths : TYPE
-            DESCRIPTION.
+        paths : ITERABLE
+            The paths to be retained.
 
         Returns
         -------
-        None.
+        The pruned graph. 
 
         """
         
@@ -758,8 +892,25 @@ class StochDAG:
     
 class ScaDAG:
     """Represents a graph with scalar node and edge weights."""
-    def __init__(self, graph, aoa, johnson):
-        """Graph is an NetworkX digraph with RV nodes and edge weights. Usually output by functions elsewhere..."""
+    def __init__(self, graph, aoa=True, johnson=False):
+        """
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph with scalar node and edge weights
+            DAG topology and weights.
+        aoa : BOOL
+            Activity-on-arc - i.e., task weights are incorporated into edge weights. This is useful for exploiting some Networkx functions.
+            The default is True.
+        johnson : BOOL, optional
+            Transform scalar graph as in Johnson's algorithm to convert longest to shortest path function. Again, useful for compatability
+            with some Networkx functions. The default is False.
+
+        Returns
+        -------
+        None.
+        """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
         self.size = len(self.top_sort)
@@ -769,6 +920,12 @@ class ScaDAG:
     def longest_path(self):
         """
         Compute longest path.
+
+        Returns
+        -------
+        FLOAT/INT
+            Longest path length.
+
         """
         
         if self.aoa:
@@ -786,18 +943,20 @@ class ScaDAG:
     
     def yen_klongest_paths(self, k):
         """
-        Slow for large DAGs. 
+        Yen's algorithm for the K longest paths. Not used anywhere. Slow for large DAGs.
+        See Networkx documentation for shortest_simple_paths.
 
         Parameters
         ----------
-        k : TYPE
-            DESCRIPTION.
+        k : INT
+            Number of longest paths.
 
         Returns
         -------
-        None.
+        LIST
+            The k longest paths through the DAG.
 
-        """        
+        """      
         assert self.aoa and self.johnson, 'ScaDAG not set-up for use with shortest_simple_paths'
         return list(islice(nx.shortest_simple_paths(self.graph, self.top_sort[0], self.top_sort[-1], weight="weight"), k))
         

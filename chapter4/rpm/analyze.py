@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TODO: description.
+Analyze data and make plots.
 """
 
 import pathlib, dill
@@ -32,7 +32,6 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 

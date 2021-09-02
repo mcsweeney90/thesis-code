@@ -32,14 +32,13 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
 df = pd.read_csv('clt.csv')
-mc_df = pd.read_csv('../rpm/rpm.csv')
+mc_df = pd.read_csv('../rpm/rpm.csv') # Needed for MC10/100.
 time = pd.read_csv('timing.csv')
 
 summary_path = "summaries/"
@@ -59,17 +58,17 @@ upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
 # for nb, s in product([128, 1024], [1, 4]):
 #     new_summary_path = "{}/nb{}s{}/".format(summary_path, nb, s)
 #     pathlib.Path(new_summary_path).mkdir(parents=True, exist_ok=True) 
-#     for nt in ntiles:
-#         row = df.loc[(df['nb'] == nb) & (df['s'] == s) & (df['nt'] == nt)].to_dict(orient='records')[0]        
+#     for N in ntiles:
+#         row = df.loc[(df['nb'] == nb) & (df['s'] == s) & (df['N'] == N)].to_dict(orient='records')[0]        
 #         data = {}
 #         for dist in dists:
-#             with open('../empirical/chol/nb{}s{}/data/{}/{}.dill'.format(nb, s, dist, nt), 'rb') as file:
+#             with open('../empirical/chol/nb{}s{}/data/{}/{}.dill'.format(nb, s, dist, N), 'rb') as file:
 #                 D = dill.load(file)
 #             data[dist] = D
-#         with open("{}/{}.txt".format(new_summary_path, nt), "w") as dest:
+#         with open("{}/{}.txt".format(new_summary_path, N), "w") as dest:
 #             print("COMPARISON OF CLT-BASED HEURISTICS WITH EMPIRICAL DISTRIBUTIONS.", file=dest) 
-#             print("NUMBER OF TILES: {}".format(nt), file=dest)
-#             print("NUMBER OF TASKS: {}".format(ntasks[nt]), file=dest)            
+#             print("NUMBER OF TILES (ALONG EACH MATRIX AXIS): {}".format(N), file=dest)
+#             print("NUMBER OF TASKS: {}".format(ntasks[N]), file=dest)            
             
 #             # Relative error in the mean.
 #             print("\n\n\n------------------------------------------------------------------", file=dest)
@@ -155,7 +154,7 @@ upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
             
 #             # Relative error in the variance.
 #             print("\n\n\n------------------------------------------------------------------", file=dest)
-#             print("KS STATISTICS - NORMAL DISTS WITH COMPUTED MOMENTS VS EMPIRICAL DISTS.", file=dest)
+#             print("KS STATISTICS - NORMAL DISTS WITH COMPUTED MOMENTS VS EMPIRICAL DISTS (EXCEPT MC10/100).", file=dest)
 #             print("------------------------------------------------------------------", file=dest)
             
 #             for dist in dists:
@@ -200,8 +199,8 @@ upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
 #     data = df.loc[(df['nb'] == nb) & (df['s'] == s)] 
 #     mc_data = mc_df.loc[(mc_df['nb'] == nb) & (mc_df['s'] == s)] 
 #     ref_vars = []
-#     for nt in ntiles:
-#         with open('../empirical/chol/nb{}s{}/data/gamma/{}.dill'.format(nb, s, nt), 'rb') as file:
+#     for N in ntiles:
+#         with open('../empirical/chol/nb{}s{}/data/gamma/{}.dill'.format(nb, s, N), 'rb') as file:
 #             D = dill.load(file)
 #         ref_vars.append(np.var(D))
 #     # Make the plot. 
@@ -229,10 +228,10 @@ upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
 #     data = df.loc[(df['nb'] == nb) & (df['s'] == s)] 
 #     mc_data = mc_df.loc[(mc_df['nb'] == nb) & (mc_df['s'] == s)] 
 #     sculli, corlca = [], []
-#     for nt in ntiles:        
-#         with open('../empirical/chol/nb{}s{}/data/gamma/{}.dill'.format(nb, s, nt), 'rb') as file:
+#     for N in ntiles:        
+#         with open('../empirical/chol/nb{}s{}/data/gamma/{}.dill'.format(nb, s, N), 'rb') as file:
 #             D = dill.load(file)        
-#         row = data.loc[(data['nt'] == nt)].to_dict(orient='records')[0] 
+#         row = data.loc[(data['N'] == N)].to_dict(orient='records')[0] 
 #         # Sculli.
 #         sc_mu, sc_sd = row['SCULLI MU'], sqrt(row['SCULLI VAR'])
 #         ks, _ = kstest(D, cdf='norm', args=(sc_mu, sc_sd))
@@ -266,41 +265,41 @@ upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
 #     plt.savefig('{}/clt_nb{}s{}KS'.format(plot_path, nb, s), bbox_inches='tight') 
 #     plt.close(fig) 
         
-# Time relative to CPM method.
-for nb, s in product([128, 1024], [1, 4]):
-    data = time.loc[(time['nb'] == nb) & (time['s'] == s)] 
-    sculli = data["SCULLI"] / data["CPM"]
-    corlca = data["CORLCA"] / data["CPM"]
-    kamb = data["K"] / data["CPM"]
-    mc10 = data["MC10"] / data["CPM"]
-    mc100 = data["MC100"] / data["CPM"]
+# # Time relative to CPM method.
+# for nb, s in product([128, 1024], [1, 4]):
+#     data = time.loc[(time['nb'] == nb) & (time['s'] == s)] 
+#     sculli = data["SCULLI"] / data["CPM"]
+#     corlca = data["CORLCA"] / data["CPM"]
+#     kamb = data["K"] / data["CPM"]
+#     mc10 = data["MC10"] / data["CPM"]
+#     mc100 = data["MC100"] / data["CPM"]
             
-    fig, ax = plt.subplots(dpi=400)
-    ax.plot(ntiles, sculli, label='SCULLI', color='#E24A33', marker='s')
-    ax.plot(ntiles, corlca, label='CORLCA', color='#348ABD', marker='o')
-    ax.plot(ntiles, kamb, label='KAMB.', color='#8EBA42', marker='D')
-    ax.plot(ntiles, mc10, label='MC10', color='#988ED5', marker='v')
-    ax.plot(ntiles, mc100, label='MC100', color='#FBC15E', marker='^')
+#     fig, ax = plt.subplots(dpi=400)
+#     ax.plot(ntiles, sculli, label='SCULLI', color='#E24A33', marker='s')
+#     ax.plot(ntiles, corlca, label='CORLCA', color='#348ABD', marker='o')
+#     ax.plot(ntiles, kamb, label='KAMB.', color='#8EBA42', marker='D')
+#     ax.plot(ntiles, mc10, label='MC10', color='#988ED5', marker='v')
+#     ax.plot(ntiles, mc100, label='MC100', color='#FBC15E', marker='^')
     
-    plt.minorticks_on()
-    plt.grid(True, linestyle='-', axis='y', which='major')
-    plt.grid(True, linestyle=':', axis='y', which='minor')
-    plt.grid(True, linestyle='-', axis='x', which='major')
-    plt.grid(True, linestyle=':', axis='x', which='minor')    
+#     plt.minorticks_on()
+#     plt.grid(True, linestyle='-', axis='y', which='major')
+#     plt.grid(True, linestyle=':', axis='y', which='minor')
+#     plt.grid(True, linestyle='-', axis='x', which='major')
+#     plt.grid(True, linestyle=':', axis='x', which='minor')    
     
-    if s == 1:
-        ax.set_ylabel("TIME (NORMALIZED)", labelpad=5)
-    if nb == 1024:
-        ax.set_xlabel("N", labelpad=5)
-    if s==1 and nb == 128:
-        ax.legend(handlelength=3, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white')
+#     if s == 1:
+#         ax.set_ylabel("TIME (NORMALIZED)", labelpad=5)
+#     if nb == 1024:
+#         ax.set_xlabel("N", labelpad=5)
+#     if s==1 and nb == 128:
+#         ax.legend(handlelength=3, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white')
     
-    ax.tick_params(axis='x', which='minor', bottom=False)
-    ax.tick_params(axis='y', which='minor', left=False)    
+#     ax.tick_params(axis='x', which='minor', bottom=False)
+#     ax.tick_params(axis='y', which='minor', left=False)    
     
-    fig.tight_layout()    
-    plt.savefig('{}/clt_nb{}s{}_time'.format(plot_path, nb, s), bbox_inches='tight') 
-    plt.close(fig) 
+#     fig.tight_layout()    
+#     plt.savefig('{}/clt_nb{}s{}_time'.format(plot_path, nb, s), bbox_inches='tight') 
+#     plt.close(fig) 
         
             
             

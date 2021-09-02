@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Similarity of empirical distributions for STG set.
+Analyze similarity of empirical distributions for STG set.
 """
 
 import pandas as pd
@@ -10,7 +10,7 @@ import numpy as np
 runs = 100000
 dists = ["normal", "gamma", "uniform"]
 upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
-df = pd.read_csv('emp_stg.csv')
+df = pd.read_csv('similarity.csv')
 
 # =============================================================================
 # Summaries.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis of STG results.
+Analysis of STG results wrt CLT-based heuristics.
 """
 
 import pathlib, dill
@@ -32,13 +32,12 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
-df = pd.read_csv('stg_all.csv')
+df = pd.read_csv('stg.csv')
 
 summary_path = "summaries/clt/"
 pathlib.Path(summary_path).mkdir(parents=True, exist_ok=True)
@@ -46,7 +45,6 @@ plot_path = "plots/clt/"
 pathlib.Path(plot_path).mkdir(parents=True, exist_ok=True)
 
 dists = ["normal", "gamma", "uniform"]
-upper_dists = {"normal" : "NORMAL", "gamma" : "GAMMA", "uniform" : "UNIFORM"}
 covs = [0.01, 0.03, 0.1, 0.3]
 
 ####################################################################################################
@@ -128,39 +126,35 @@ def summarize(data, name):
 # plt.close(fig) 
 
 
-# TODO: KS statistics (max and mean).
-methods = ["SCULLI", "CORLCA", "MC10", "MC100"]
-means = {method : [] for method in methods}
-maxs = {method : [] for method in methods}
-for cov in covs:
-    data = df.loc[(df['COV'] == cov)] 
-    for method in methods:
-        err = 100*abs(data["{} VAR".format(method)] - data["REF VAR"]) / data["REF VAR"]
-        means[method].append(data['{} KS'.format(method)].mean())
-        maxs[method].append(data['{} KS'.format(method)].max())
-x = np.arange(len(covs))
-width = 0.2  
-fig, ax = plt.subplots(dpi=400)
-rects1 = ax.bar(x - 1.5*width, means["SCULLI"], width, label='SCULLI', color='#E24A33')
-# rects5 = ax.bar(x - 1.5*width, list(mx - mn for mx, mn in zip(maxs["SCULLI"], means["SCULLI"])), width, bottom=means["SCULLI"], color='#E24A33', alpha=0.3)
-rects2 = ax.bar(x - 0.5*width, means["CORLCA"], width, label='CORLCA', color='#348ABD')
-# rects6 = ax.bar(x - 0.5*width, list(mx - mn for mx, mn in zip(maxs["CORLCA"], means["CORLCA"])), width, bottom=means["CORLCA"], color='#348ABD', alpha=0.3)
-rects3 = ax.bar(x + 0.5*width, means["MC10"], width, label='MC10', color='#988ED5')
-# rects7 = ax.bar(x + 0.5*width, list(mx - mn for mx, mn in zip(maxs["MC10"], means["MC10"])), width, bottom=means["MC10"], color='#988ED5', alpha=0.3)
-rects4 = ax.bar(x + 1.5*width, means["MC100"], width, label='MC100', color='#FBC15E',)
-# rects8 = ax.bar(x + 1.5*width, list(mx - mn for mx, mn in zip(maxs["MC100"], means["MC100"])), width, bottom=means["MC100"], color='#FBC15E', alpha=0.3)
+# # KS statistics (mean or max).
+# methods = ["SCULLI", "CORLCA", "MC10", "MC100"]
+# means = {method : [] for method in methods}
+# # maxs = {method : [] for method in methods}
+# for cov in covs:
+#     data = df.loc[(df['COV'] == cov)] 
+#     for method in methods:
+#         err = 100*abs(data["{} VAR".format(method)] - data["REF VAR"]) / data["REF VAR"]
+#         means[method].append(data['{} KS'.format(method)].mean())
+#         # maxs[method].append(data['{} KS'.format(method)].max())
+# x = np.arange(len(covs))
+# width = 0.2  
+# fig, ax = plt.subplots(dpi=400)
+# rects1 = ax.bar(x - 1.5*width, means["SCULLI"], width, label='SCULLI', color='#E24A33')
+# rects2 = ax.bar(x - 0.5*width, means["CORLCA"], width, label='CORLCA', color='#348ABD')
+# rects3 = ax.bar(x + 0.5*width, means["MC10"], width, label='MC10', color='#988ED5')
+# rects4 = ax.bar(x + 1.5*width, means["MC100"], width, label='MC100', color='#FBC15E')
 
-plt.minorticks_on()
-plt.grid(True, linestyle='-', axis='y', which='major')
-plt.grid(True, linestyle=':', axis='y', which='minor')
-plt.grid(False, axis='x')  
+# plt.minorticks_on()
+# plt.grid(True, linestyle='-', axis='y', which='major')
+# plt.grid(True, linestyle=':', axis='y', which='minor')
+# plt.grid(False, axis='x')  
 
-ax.set_ylabel("MEAN KS STATISTIC", labelpad=5)
-ax.set_xticks(x)
-ax.set_xticklabels(covs)
-ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5)
-ax.legend(handlelength=3, handletextpad=0.4, ncol=2, loc='best', fancybox=True, facecolor='white')
-ax.tick_params(axis='x', which='minor', bottom=False) 
-fig.tight_layout()    
-plt.savefig('{}/stg_clt_ks'.format(plot_path), bbox_inches='tight') 
-plt.close(fig) 
+# ax.set_ylabel("MEAN KS STATISTIC", labelpad=5)
+# ax.set_xticks(x)
+# ax.set_xticklabels(covs)
+# ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5)
+# ax.legend(handlelength=3, handletextpad=0.4, ncol=2, loc='best', fancybox=True, facecolor='white')
+# ax.tick_params(axis='x', which='minor', bottom=False) 
+# fig.tight_layout()    
+# plt.savefig('{}/stg_clt_ks'.format(plot_path), bbox_inches='tight') 
+# plt.close(fig) 

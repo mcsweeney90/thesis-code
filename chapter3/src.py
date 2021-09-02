@@ -96,6 +96,7 @@ class DAG:
                            vccr=1.0):
         """
         TODO: setting edge costs far too slow.
+        Set weights according to specified methods for generating random costs.
 
         Parameters
         ----------
@@ -129,7 +130,7 @@ class DAG:
             beta_task = mutask/alpha_task
             beta_mach = np.random.gamma(alpha_task, beta_task, size=self.size)/alpha_mach
             for i, t in enumerate(self.top_sort):
-                self.graph.nodes[t]['weight'] = np.random.gamma(alpha_mach, beta_mach[i], size=self.nworkers) # TODO: vectorize?          
+                self.graph.nodes[t]['weight'] = np.random.gamma(alpha_mach, beta_mach[i], size=self.nworkers)          
                 
         elif comp_method in ["nb", "NB"]:
             vtask, vmach, vnoise = comp_params

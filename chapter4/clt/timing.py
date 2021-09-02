@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Timing MC method. 
+Time CLT and MC heuristics for Cholesky graphs.
 """
 
 import dill
@@ -9,18 +9,18 @@ import pandas as pd
 from itertools import product
 from timeit import default_timer as timer
 
-# TODO: the following are apparently needed to run the script on Matt's machine - why?
+# TODO: the following apparently unnecessary import statement may be needed to load the DAGs - suspect due to dill saving by reference.
 import sys
 sys.path.append("../")
 
 runs = 10
 data = []
 ntasks = list(range(5, 51, 5))
-for nt, nb, s in product(ntasks, [128, 1024], [1, 4]): 
+for N, nb, s in product(ntasks, [128, 1024], [1, 4]): 
     chol_load_path = '../chol_graphs/nb{}s{}'.format(nb, s)
-    with open('{}/{}.dill'.format(chol_load_path, nt), 'rb') as file:
+    with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
         G = dill.load(file)
-    graph_data = {"n" : G.size, "nt" : nt, "nb" : nb, "s" : s}
+    graph_data = {"n" : G.size, "N" : N, "nb" : nb, "s" : s}
     
     start = timer()
     for _ in range(runs):

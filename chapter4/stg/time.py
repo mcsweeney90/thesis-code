@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis of timing data.
+Analysis of STG results wrt timings.
 """
 
 import pathlib, dill
@@ -32,7 +32,6 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -72,13 +71,7 @@ def summarize(data, name):
             print("\n{}".format(method), file=dest)
             T = data["{} TIME".format(method)] / data["CORLCA TIME"]
             print("AVERAGE: {}".format(T.mean()), file=dest)
-            print("MAX: {}".format(T.max()), file=dest)
-        
-        
+            print("MAX: {}".format(T.max()), file=dest)       
         
 # Entire data set 
 summarize(df, name="all")
-# # By cov.
-# for cov in covs:
-#     sdf = df.loc[(df['COV'] == cov)] 
-#     summarize(sdf, name="cov{}".format(cov))

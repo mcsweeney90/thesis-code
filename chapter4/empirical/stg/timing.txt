@@ -1,4 +1,0 @@
-Time for entire procedure (functions etc timed separately but useful for gauging future runtimes).
-
-Time taken: 62446.956932373345
-

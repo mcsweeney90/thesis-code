@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis of STG results.
+Analysis of STG results wrt RPM heuristics.
 """
 
 import pathlib, dill
@@ -33,7 +33,6 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -75,10 +74,10 @@ def summarize(data, name):
         for method in methods[3:]:
             print("{}: ({}, {})".format(method, data["{} KS".format(method)].mean(), data["{} KS".format(method)].max()), file=dest)
         
-summarize(df, name="all")
-for cov in covs:
-    sdf = df.loc[(df['COV'] == cov)] 
-    summarize(sdf, name="cov{}".format(cov))
+# summarize(df, name="all")
+# for cov in covs:
+#     sdf = df.loc[(df['COV'] == cov)] 
+#     summarize(sdf, name="cov{}".format(cov))
 
 # =============================================================================
 # Plots.
@@ -87,9 +86,7 @@ for cov in covs:
 # KS statistics.
 def mean_hist(data, name, col, ylabel=None):
     means = {method: data["{} {}".format(method, col)].mean() for method in methods[4:]}
-    x = np.arange(len(means))      
-    # Sort methods to identify three best.
-    # sort = sorted(means, key=means.get)[:3]    
+    x = np.arange(len(means))        
     
     colors = ['#348ABD', '#988ED5', '#E24A33', '#8EBA42', '#FBC15E', '#E24A33', '#8EBA42'] 
     fig, ax = plt.subplots(dpi=400)
@@ -100,23 +97,16 @@ def mean_hist(data, name, col, ylabel=None):
     plt.grid(True, linestyle='-', axis='y', which='major')
     plt.grid(True, linestyle=':', axis='y', which='minor')
     plt.grid(False, axis='x')  
-    
-    # # Get the three best and label them.
-    # handles = [mpl_patches.Rectangle((0, 0), 1, 1, fc="white", ec="white", lw=0, alpha=0)] * 3
-    # labels = list('{} = {}'.format(m, round(means[m], 3)) for m in sort)    
-    # ax.legend(handles, labels, handlelength=0, handletextpad=0.4, ncol=1, loc='best', fancybox=True, facecolor='white', framealpha=1.0) 
-    
+        
     # Add some text for labels, title and custom x-axis tick labels, etc.
     if ylabel is not None:
         ax.set_ylabel(ylabel, labelpad=5)
     ax.set_xticks(x)
-    xlabels = methods[4:]
     ax.set_xticklabels(methods[4:], rotation=90)     
     ax.tick_params(axis='x', which='minor', bottom=False) 
     fig.tight_layout()    
     plt.savefig('{}/stg_rpm_{}_{}'.format(plot_path, col, name), bbox_inches='tight') 
-    plt.close(fig)  
-    
+    plt.close(fig)      
 
 # mean_hist(data=df, name="all", col="KS", ylabel="MEAN KS STATISTIC")
 # for cov, name in zip(covs, str_covs):

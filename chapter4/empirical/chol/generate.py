@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generate empirical distributions.
+Generate and save empirical distributions.
 """
 
 import dill, pathlib
@@ -11,10 +11,10 @@ import sys
 sys.path.append("../../")
 from src import StochDAG
 
-ntasks = list(range(5, 51, 5))
-for nt, nb, s in product(ntasks, [128, 1024], [1, 4]): 
+ntiles = list(range(5, 51, 5))
+for N, nb, s in product(ntiles, [128, 1024], [1, 4]): 
     chol_load_path = '../../chol_graphs/nb{}s{}'.format(nb, s)
-    with open('{}/{}.dill'.format(chol_load_path, nt), 'rb') as file:
+    with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
         R = dill.load(file)
     G = StochDAG(R)
     
@@ -27,7 +27,7 @@ for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
         D = G.monte_carlo(samples=runs, dist=distro)
         
         # Save the data.
-        with open('{}/{}.dill'.format(save_path, nt), 'wb') as handle:
+        with open('{}/{}.dill'.format(save_path, N), 'wb') as handle:
             dill.dump(D, handle)
         
         
