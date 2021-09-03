@@ -95,7 +95,6 @@ class DAG:
                            muccr=0.1,
                            vccr=1.0):
         """
-        TODO: setting edge costs far too slow.
         Set weights according to specified methods for generating random costs.
 
         Parameters
@@ -106,7 +105,12 @@ class DAG:
             Method used to set computation costs. The default is "CNB".
         comp_params : ITERABLE, optional
             Parameters needed for method of setting computation costs. The default is None.
-        
+        vband : FLOAT, optional
+            Coefficient of variation of bandwidths. The default is 1.0.
+        muccr : FLOAT, optional
+            Mean CCR. The default is 0.1.
+        vccr : FLOAT, optional
+            Coefficient of variation for gamma distribution CCRs are sampled from. The default is 1.0.
 
         Returns
         -------

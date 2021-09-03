@@ -149,7 +149,6 @@ class ScaTaskDAG:
         Notes
         -------
         1. Assumed to be symmetric.
-
         """
         if source == dest:
             return 0.0
@@ -604,7 +603,6 @@ class StochTaskDAG:
         Notes
         -------
         The CoV of the distribution used to sample the cost CoVs is always assumed to be 0.1.
-
         """
                 
         # Do corrections.
@@ -642,10 +640,19 @@ class StochTaskDAG:
                         
     def minimal_serial_time(self, mc_samples=1000):
         """
-        Extension of minimal serial time for scalar graphs. 
+        Extension of minimal serial time for stochastic weights. Not used anywhere. 
         Uses MC sampling to estimate the MST distribution, assuming that times are normally distributed (fairly
-        reasonable as they are typically the sum of 100 or so task costs).  
-        Assumes they are all independent (reasonable?)
+        reasonable as they are typically the sum of 100 or so task costs). 
+
+        Parameters
+        ----------
+        mc_samples : INT, optional
+            DESCRIPTION. The default is 1000.
+
+        Returns
+        -------
+        LIST
+            Empirical MST distribution.
         """
         workers = list(self.graph.nodes[self.top_sort[0]]['weight'])
         realizations = []
@@ -656,7 +663,19 @@ class StochTaskDAG:
         return list(np.amin(realizations, axis=0))
     
     def get_scalar_graph(self, scal_func=lambda r : r.mu):
-        """Return an ScaTaskDAG object..."""
+        """
+        Scalarize all costs using the input function. 
+
+        Parameters
+        ----------
+        scal_func : LAMBDA, optional
+            The scalarization function to apply to the cost RVs. The default is lambda r : r.mu.
+
+        Returns
+        -------
+        ScaTaskDAG
+            Counterpart graph with scalar costs.
+        """
         
         # Copy the topology.
         A = self.graph.__class__()
@@ -675,18 +694,36 @@ class StochTaskDAG:
         return ScaTaskDAG(A)
     
     def get_averaged_graph(self, avg_type="NORMAL"):
-        """Return a graph with averaged weights..."""
+        """
+        Average the (stochastic) costs to get a graph with individual RV weights.
+        Used in SDLS. 
+
+        Parameters
+        ----------
+        avg_type : STRING, optional
+            How to average the costs. The default is "NORMAL".
+
+        Raises
+        ------
+        ValueError
+            Unrecognized avg_type.
+
+        Returns
+        -------
+        StochDAG
+            Counterpart DAG with single task and edge weight RVs.
+        
+        Notes
+        -------
+        Meant to add more average types but never used anyway.        
+        """
         
         # Copy the topology.
         A = self.graph.__class__()
         A.add_nodes_from(self.graph)
         A.add_edges_from(self.graph.edges)
-        
-        # TODO: are these needed since changes?
-        # mean = lambda r : 0.0 if (type(r) == float or type(r) == int) else r.mu
-        # var = lambda r : 0.0 if (type(r) == float or type(r) == int) else r.var
-                
-        # Stochastic averages.
+                        
+        # Stochastic averages. 
         if avg_type in ["N", "NORMAL", "CLT"]:
             L = len(self.graph.nodes[self.top_sort[0]]['weight'])
             L2 = L*L
@@ -695,8 +732,6 @@ class StochTaskDAG:
                 v = sum(r.var for r in self.graph.nodes[t]['weight'].values())
                 A.nodes[t]['weight'] = RV(m, v)/L
                 for s in self.graph.successors(t):
-                    # m1 = 2*sum(mean(r) for r in self.graph[t][s]['weight'].values())
-                    # v1 = 2*sum(var(r) for r in self.graph[t][s]['weight'].values())
                     m1 = 2*sum(r.mu for r in self.graph[t][s]['weight'].values())
                     v1 = 2*sum(r.var for r in self.graph[t][s]['weight'].values())
                     A[t][s]['weight'] = RV(m1, v1)/L2
@@ -705,6 +740,29 @@ class StochTaskDAG:
         raise ValueError("Invalid stochastic average type!")        
     
     def comm_cost(self, parent, child, source, dest):
+        """
+        Get the communication/edge cost between parent and child when they are scheduled on source and dest (respectively).
+
+        Parameters
+        ----------
+        parent : INT/STRING
+            ID of parent task.
+        child : INT/STRING
+            ID of child task.
+        source : INT/STRING
+            ID of processor parent is scheduled on.
+        dest : INT/STRING
+            ID of processor child is scheduled on.
+
+        Returns
+        -------
+        FLOAT/RV
+            The communication cost.
+        
+        Notes
+        -------
+        1. Assumed to be symmetric.
+        """
         if source == dest:
             return 0.0
         elif source < dest:
@@ -721,13 +779,12 @@ class StochTaskDAG:
         schedule : DICT
             {worker : [(task_id, est_start_time, est_finish_time), ...]}.
             Note est_start_time and est_finish_time may be scalar or RVs.
-        where : TYPE, optional
-            DESCRIPTION. The default is None.
+        where_scheduled : DICT, optional
+            Task assignments, {Task ID : processor ID}. The default is None.
 
         Returns
         -------
         None.
-
         """
         
         if where_scheduled is None:
@@ -765,11 +822,36 @@ class StochTaskDAG:
                         eval_dist="N",
                         eval_samples=1000):
         """
-        TODO. Insertion. Create ERV class?
-        Quite a few differences from the ScaTaskDAG method:
-            1. Priorities are now assumed to be RVs/empirical RVs, so prio_function is needed to scalarize them (but in future might
-               want to do something else instead). 
-            2. Similarly for selection function.
+        Simulates the scheduling of the task graph according to the task priorities.
+        Not used anywhere so still a bit rough.
+    
+        Parameters
+        ----------
+        priorities : DICT
+            Task priorities, {task ID : priority}. 
+        prio_function : FUNCTION
+            Function used to compute task priorities.
+        selection_function : FUNCTION
+            Function used to select processors.
+        insertion : BOOL, optional
+            Whether or not to consider task insertion. The default is False.
+        eval_method : STRING, optional
+            Which approximation method to use. Options are Sculli's method, CorLCA or MC. The default is "MC".
+        eval_dist : STRING, optional
+            Which distribution to use when sampling costs if eval_method == "MC". The default is "N".
+        eval_samples : INT, optional
+            Number of MC samples to use if eval_method == "MC". The default is 1000.
+    
+        Returns
+        -------
+        schedule : StochDAG
+            The schedule graph.
+        
+        Notes
+        -------
+        1. Priorities are now assumed to be RVs/empirical RVs, so prio_function is needed to scalarize them (but in future might
+           want to do something else instead). 
+        2. Similarly for selection function.        
         """
         
         # Get list of workers - often useful.
@@ -816,17 +898,16 @@ class StochTaskDAG:
                         S[e]["X"]['weight'] = 0.0 
                         
                 # Compute longest path using specified method.
-                # worker_makespans[w] = StochDAG(S).longest_path(method=eval_method, mc_dist=eval_dist, mc_samples=eval_samples) # TODO.
                 P = StochDAG(S)
                 if eval_method in ["MC", "mc"]:
-                    worker_dist = P.longest_path(method="MC", mc_dist=eval_dist, mc_samples=eval_samples) # TODO: ERV class. 
+                    worker_dist = P.longest_path(method="MC", mc_dist=eval_dist, mc_samples=eval_samples) 
                     m = sum(worker_dist)/len(worker_dist)
                     v = np.var(worker_dist)
                     worker_makespans[w] = RV(m, v)
                 else:
                     worker_makespans[w] = P.longest_path(method=eval_method)
                 
-                # Clean up - remove edge etc. TODO: need to set node weight to zero?
+                # Clean up - remove edge etc. 
                 if remove:
                     S.remove_edge(L, task)
                 if len(exit_tasks) > 1:
@@ -842,7 +923,7 @@ class StochTaskDAG:
             for p in parents:
                 S[p][task]['weight'] = self.comm_cost(p, task, where[p], chosen_worker)
             try:
-                L = last[chosen_worker] # TODO: insertion.
+                L = last[chosen_worker] 
                 if not S.has_edge(L, task):
                     S.add_edge(L, task)
                     S[L][task]['weight'] = 0.0
