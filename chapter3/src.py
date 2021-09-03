@@ -48,10 +48,16 @@ class DAG:
 
         Parameters
         ----------
-        nprocessors : TYPE
-            DESCRIPTION.
-        ccr : TYPE
-            DESCRIPTION.
+        nprocessors : INT
+            The number of processors.
+        ccr : FLOAT
+            The target CCR.
+        vproc : FLOAT, optional
+            CoV of processor speeds. The default is 1.0.
+        vrel : FLOAT, optional.
+            CoV of relatedness. The default is 1.0.
+        vband : FLOAT, optional.
+            CoV of link bandwidths. The default is 1.0.
 
         Returns
         -------
@@ -191,8 +197,11 @@ class DAG:
 
         Parameters
         ----------
-        nprocessors : TYPE
-            DESCRIPTION.
+        nprocessors : INT
+            The number of processors.
+        
+        max_cost : INT/FLOAT
+            The maximum cost.
 
         Returns
         -------
@@ -524,13 +533,16 @@ class DAG:
 
         Parameters
         ----------
+        realizations : INT
+            The number of samples/realizations of the costs.
         pmf : STRING, optional
             The pmfs to use to sample the costs. Options are "A" or "H". The default is "A".
+        times : BOOL, optional
+            If True, return timing data. The default is False.
 
         Returns
         -------
         None.
-
         """
         
         if times:

@@ -177,7 +177,7 @@ class ScaTaskDAG:
         assignment : DICT, optional
             An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}. The default is None.
         return_assignment : BOOL, optional
-            If True, return the task assignments as a dict. The default is False.
+            If True, return the task assignments as a dict. The default is True.
     
         Returns
         -------
@@ -946,8 +946,18 @@ class StochTaskDAG:
 
 def HEFT(G):
     """
-    HEFT scheduling heuristic.
-    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert to scalar then apply?
+    Heterogeneous Earliest Finish Time (HEFT).
+    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert then apply?
+
+    Parameters
+    ----------
+    G : ScaTaskDAG
+        Task DAG.
+
+    Returns
+    -------
+    schedule : DICT, optional
+        Schedule in the form {Worker ID : [(task, start time, finish time), ...], ...}.
     """
     # Compute upward ranks.
     U = G.get_upward_ranks()
@@ -956,8 +966,18 @@ def HEFT(G):
 
 def PEFT(G):
     """
-    HEFT scheduling heuristic.
-    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert to scalar then apply?
+    Predict Earliest Finish Time (PEFT).
+    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert then apply?
+
+    Parameters
+    ----------
+    G : ScaTaskDAG
+        Task DAG.
+
+    Returns
+    -------
+    schedule : DICT, optional
+        Schedule in the form {Worker ID : [(task, start time, finish time), ...], ...}.
     """
     # Compute optimistic cost table.
     OCT = G.optimistic_cost_table(include_current=False)
@@ -972,24 +992,31 @@ def PEFT(G):
 
 def SSTAR(T, det_heuristic, scal_func=lambda r : r.mu, scalar_graph=None):
     """
-    Converts a StochTaskDAG S to a "scalarized" ScaTaskDAG object using scal_func, then applies det_heuristic to it. 
-    When avg_type == "MEAN" and det_heuristic == HEFT, this is just HEFT applied to the stochastic graph.
-    When avg_type == "SHEFT" and det_heuristic == HEFT, this is the Stochastic HEFT (SHEFT) heuristic.        
-    'A stochastic scheduling algorithm for precedence constrained tasks on Grid',
-    Tang, Li, Liao, Fang, Wu (2011).
-    However, this function can take any other deterministic heuristic instead.
+    Converts a StochTaskDAG T to a "scalarized" ScaTaskDAG object using scal_func, then applies det_heuristic to it. 
+    With default scal_func and det_heuristic == HEFT, this is just HEFT applied to the stochastic graph.
+    With scal_func lambda r : r.mu + r.sd and det_heuristic == HEFT, this is the Stochastic HEFT (SHEFT) heuristic.
+    However, this function can take any other scalarization function and deterministic heuristic.
 
     Parameters
     ----------
-    S : TYPE
-        DESCRIPTION.
-    det_heuristic : TYPE
-        DESCRIPTION.
+    T : StochTaskDAG
+        Task graph (with stochastic costs).
+    det_heuristic : FUNCTION
+        The deterministic heuristic to apply.
+    scal_func : FUNCTION, optional
+        The scalarization function. The default is lambda r : r.mu.
+    scalar_graph : ScaTaskDAG, optional
+        Used if scalarized graph already exists. The default is None.
 
     Returns
     -------
-    None.
-
+    StochDAG
+        The schedule graph.
+    
+    References
+    ----------
+    'A stochastic scheduling algorithm for precedence constrained tasks on Grid',
+    Tang, Li, Liao, Fang, Wu (2011).
     """
     # Convert to an "averaged" graph with scalar weights (if necessary).
     if scalar_graph is None:
@@ -1005,14 +1032,27 @@ def SDLS(T, X=0.9, return_graph=True, insertion=None):
     Stochastic Dynamic Level Scheduling (SDLS) heuristic.
     TODO: Still may be too slow for large DAGs. Obviously copying graph etc is not optimal but those kind of things aren't the
     real bottlenecks.
-    
+
+    Parameters
+    ----------
+    T : StochTaskDAG
+        Task DAG (with stochastic costs).
+    X : FLOAT, optional
+        Parameter used for determining stochastic dominance. The default is 0.9.
+    return_graph : BOOL, optional
+        If True, return the schedule graph. The default is True.
+    insertion : STRING, optional
+        Which insertion method to use. The default is None.
+
     Returns
     -------
-    None.
-
+    If return_graph:
+        The schedule graph as a StochDAG
+    else:
+        The schedule as a DICT.
     """
     
-    mean = lambda r : 0.0 if (type(r) == float or type(r) == int) else r.mu # TODO: Hmmm... Only needed for insertion.
+    mean = lambda r : 0.0 if (type(r) == float or type(r) == int) else r.mu # TODO: only needed for insertion.
     
     # Get the list of workers - useful throughout.
     workers = list(T.graph.nodes[T.top_sort[0]]['weight'])
@@ -1080,8 +1120,6 @@ def SDLS(T, X=0.9, return_graph=True, insertion=None):
         # Select the maximum pair. 
         chosen_task, chosen_worker = max(it.product(ready_tasks, workers), 
                                           key=lambda pr : NormalDist(SDL[pr][0].mu, SDL[pr][0].sd).inv_cdf(X))
-        # Comment above and uncomment below for Python versions < 3.8.
-        # chosen_task, chosen_worker = max(it.product(ready_tasks, workers), key=lambda pr : norm.ppf(X, SDL[pr][0].mu, SDL[pr][0].sd))
                 
         # Schedule the chosen task on the chosen worker. 
         where[chosen_task] = chosen_worker
@@ -1100,21 +1138,20 @@ def SDLS(T, X=0.9, return_graph=True, insertion=None):
     # Else return schedule only.
     return schedule  
 
-def rob_selection(est_makespans, alpha=45):
+def closest_point(est_makespans, alpha=45):
     """
     Helper function for RobHEFT.
 
     Parameters
     ----------
-    points : TYPE
-        DESCRIPTION.
-    a : TYPE, optional
-        DESCRIPTION. The default is 45.
+    est_makespans : ITERABLE
+        The estimated makespan RVs corresponding to the processor selections.
+    alpha : FLOAT, optional
+        The specified angle. The default is 45.
 
     Returns
     -------
-    None.
-
+    The best member of est_makespans according to the angle. 
     """     
     # Filter the dominated workers. This might be more expensive than it's worth given the size of the sets under consideration.  
     sorted_workers = list(sorted(est_makespans, key=lambda p : est_makespans[p].mu)) # Ascending order of expected value.
@@ -1138,28 +1175,46 @@ def rob_selection(est_makespans, alpha=45):
     dist = lambda w : abs(line_end_pt * (nondominated[w].mu/mxm) - (nondominated[w].sd/mxs)) / sqrt(1 + line_end_pt**2)
     return min(nondominated, key=dist)    
 
-def RobHEFT(T, alpha=45, method="C", mc_dist="N", mc_samples=1000):
+def RobHEFT(T, alpha=45, eval_method="C", mc_dist="N", mc_samples=1000):
     """
     RobHEFT (HEFT with robustness) heuristic.
     'Evaluation and optimization of the robustness of DAG schedules in heterogeneous environments,'
     Canon and Jeannot (2010). 
-    TODO: this is a deliberately fairly slow implementation that places clarity/re-use of existing code above speed. May write a 
-    faster version if it's ever necessary...
-    """
     
+    This is a deliberately fairly slow implementation that places clarity/re-use of existing code above speed. May write a 
+    faster version if it's ever necessary, but not used anywhere at the moment.
+
+    Parameters
+    ----------
+    T : StochTaskDAG
+        Task DAG.
+    alpha : INT/FLOAT, optional
+        Angle. The default is 45.
+    eval_method : STRING, optional
+        How to estimate the schedule makespans. The default is "C" (CorLCA).
+    mc_dist : STRING, optional
+        Distribution to use if eval_method == "MC". The default is "N".
+    mc_samples : INT, optional
+        Number of samples to use if eval_method == "MC". The default is 1000.
+
+    Returns
+    -------
+    StochDAG
+        Schedule graph.
+    """    
     # Compute priorities.
     A = T.get_averaged_graph(avg_type="NORMAL") 
     R = StochDAG(A.graph.reverse())
-    ranks = R.CPM(variance=True, full=True) # TODO: check this still works.
-    # Get maximums for later normalization. TODO: look at this.
+    ranks = R.CPM(variance=True, full=True) 
+    # Get maximums for later normalization. 
     mx_mu = ranks[T.top_sort[0]].mu
     mx_sd = max(ranks[t].sd for t in T.top_sort)
     prio_function = lambda t : alpha*(ranks[t].mu/mx_mu) + (90-alpha)*(ranks[t].sd/mx_sd)   
-    sel_function = partial(rob_selection, alpha=alpha)
+    sel_function = partial(closest_point, alpha=alpha)
     return T.priority_scheduling(priorities=ranks, 
                              prio_function=prio_function,
                              selection_function=sel_function,
-                             eval_method=method, 
+                             eval_method=eval_method, 
                              eval_dist=mc_dist, 
                              eval_samples=mc_samples)        
     
@@ -1242,27 +1297,63 @@ def RobHEFT(T, alpha=45, method="C", mc_dist="N", mc_samples=1000):
 #         return pi_star, makespans[pi_star]
 #     return pi_star
 
-def MCS(S, 
+def MCS(T, 
         production_heuristic=HEFT, 
         production_steps=100, 
         threshold=0.02, 
         prod_dist="N",
         return_all=False,
         eval_method="C",
-        mc_samples=1000,
-        criterion="MU",
+        eval_samples=1000,
+        criterion="EV",
         c=1.0,
         return_mkspan=True):
-    """ 
+    """
     Monte Carlo Scheduling (MCS).
-    'Stochastic DAG scheduling using a Monte Carlo approach,'
-    Zheng and Sakellariou (2013).
+    'Stochastic DAG scheduling using a Monte Carlo approach,' Zheng and Sakellariou (2013).
+    
     This is a slightly faster version than above - although still pretty slow.
-    """    
-        
+
+    Parameters
+    ----------
+    T : StochTaskDAG
+        Task DAG.
+    production_heuristic : FUNCTION, optional
+        Deterministic heuristic to use. The default is HEFT.
+    production_steps : INT, optional
+        The number of schedule production steps. The default is 100.
+    threshold : FLOAT, optional
+        Fitness check parameter. The default is 0.02.    
+    prod_dist : STRING, optional
+        Distribution to use for sampling costs during production steps. The default is "N".
+    return_all : BOOL, optional
+        If True, return all produced schedules. The default is False.
+    eval_method : STRING, optional
+        How to estimate the schedule makespans. The default is "MC".
+    eval_samples : INT, optional
+        Number of samples to use if eval_method == "MC". The default is 1000.
+    criterion : STRING, optional
+        How to determine the best produced schedule. The default is "EV" (expected value).
+    c : FLOAT, optional
+        Value of c to use if criterion == "UCB".
+    return_mkspan : BOOL, optional
+        If True, return makespan distribution of chosen schedule (often prevents need to evaluate it again).
+
+    Returns
+    -------
+    StochDAG
+        Schedule graph.
+    
+    TODO
+    ------
+    1. Ideally want a quick check that schedule has not been seen before but this tends to be more expensive than evaluating it again.
+       (Usual suspects like set conversion don't work with schedule graphs.)
+    """  
+    
+    # Generate realizations of schedule costs. Faster than doing it on the fly but will hit memory issues for large DAGs/numbers of production steps.
     realizations = {}
-    for t in S.top_sort:
-        for key, val in S.graph.nodes[t]['weight'].items():
+    for t in T.top_sort:
+        for key, val in T.graph.nodes[t]['weight'].items():
             mu = val.mu
             var = val.var
             sd = val.sd
@@ -1272,8 +1363,8 @@ def MCS(S,
                 realizations[(t, key)] = np.random.gamma(mu**2/var, var/mu, production_steps)
             elif prod_dist in ["U", "u", "UNIFORM", "uniform"]:
                 realizations[(t, key)] = abs(np.random.uniform(mu - sqrt(3)*sd, mu + sqrt(3)*sd, production_steps))    
-    for u, v in S.graph.edges:
-        for key, val in S.graph[u][v]['weight'].items():
+    for u, v in T.graph.edges:
+        for key, val in T.graph[u][v]['weight'].items():
             mu = val.mu
             var = val.var
             sd = val.sd
@@ -1289,34 +1380,32 @@ def MCS(S,
     L = []
     
     # Get the standard static schedule (i.e., with mean values). 
-    avg_graph = S.get_scalar_graph() 
+    avg_graph = T.get_scalar_graph() 
     mean_static_schedule, where = production_heuristic(avg_graph) 
     # Get schedule graph (easier to evaluate makespan).
-    omega_mean = S.schedule_to_graph(schedule=mean_static_schedule, where_scheduled=where)
+    omega_mean = T.schedule_to_graph(schedule=mean_static_schedule, where_scheduled=where)
     # Add schedule graph to L.
     L.append(omega_mean)
     # Compute initial qualification check.
     min_cpm = omega_mean.CPM()    
 
     # Copy the topology.
-    A = S.graph.__class__()
-    A.add_nodes_from(S.graph)
-    A.add_edges_from(S.graph.edges)
+    A = T.graph.__class__()
+    A.add_nodes_from(T.graph)
+    A.add_edges_from(T.graph.edges)
     G = ScaTaskDAG(A)    
     
     # Production steps.
     for i in range(production_steps):
         # Generate a scalarized graph. 
         for t in G.top_sort:
-            G.graph.nodes[t]['weight'] = {k : realizations[(t, k)][i] for k, v in S.graph.nodes[t]['weight'].items()}
+            G.graph.nodes[t]['weight'] = {k : realizations[(t, k)][i] for k, v in T.graph.nodes[t]['weight'].items()}
         for u, v in G.graph.edges:
-            G.graph[u][v]['weight'] = {k : realizations[((u, v), k)][i] for k, val in S.graph[u][v]['weight'].items()}
+            G.graph[u][v]['weight'] = {k : realizations[((u, v), k)][i] for k, val in T.graph[u][v]['weight'].items()}
         # Compute schedule.
         candidate, where = production_heuristic(G)
         # Convert schedule to graph for evaluation. 
-        omega = S.schedule_to_graph(schedule=candidate, where_scheduled=where)
-        # TODO. Want a quick check here that omega has not been seen before but usually more expensive. 
-        # (Usual suspects like set conversion don't work with schedule graphs.)
+        omega = T.schedule_to_graph(schedule=candidate, where_scheduled=where)
         # Calculate CPM bound on expected value of omega makespan and compare.
         omega_cpm = omega.CPM() 
         if omega_cpm < min_cpm * (1 + threshold): 
@@ -1330,7 +1419,7 @@ def MCS(S,
     if eval_method in ["MC", "mc", "MONTE CARLO", "Monte Carlo", "monte carlo"]:
         makespans = {}
         for pi in L:
-            dist = pi.longest_path(method=eval_method, mc_dist=prod_dist, mc_samples=mc_samples)
+            dist = pi.longest_path(method=eval_method, mc_dist=prod_dist, mc_samples=eval_samples)
             mu = np.mean(dist)
             var = np.var(dist)
             makespans[pi] = RV(mu, var)
@@ -1338,7 +1427,7 @@ def MCS(S,
         makespans = {pi : pi.longest_path(method=eval_method) for pi in L} 
         
     # Choose the best schedule according to the specified criterion.
-    if criterion in ["MU", "mu", "MEAN", "mean", "M", "m"]:
+    if criterion in ["EV", "ev", "MU", "mu", "MEAN", "mean", "M", "m"]:
         pi_star = min(L, key=lambda pi : makespans[pi].mu)
     elif criterion in ["SD", "sd", "SIGMA", "sigma"]:
         pi_star = min(L, key=lambda pi : makespans[pi].sd)
