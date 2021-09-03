@@ -11,7 +11,6 @@ from psutil import virtual_memory
 from statistics import NormalDist
 from networkx.utils import pairwise
 from itertools import islice
-from sys import getsizeof
 
 class RV:
     """
@@ -605,7 +604,7 @@ class StochDAG:
     
     def monte_carlo_paths_with_max(self, path_samples, lp_samples, dist="U"):
         """
-        Use Monte Carlo method to identify critical paths and then approximates their max. Not used anywhere. 
+        Use Monte Carlo method to identify critical paths and then approximates their max. 
 
         Parameters
         ----------
@@ -619,6 +618,7 @@ class StochDAG:
         Notes
         -------
         1. Only intended/works for small numbers of samples (e.g., hits memory wall for 100 samples with largest Cholesky DAG and nb = 1024).
+        2. Not used anywhere.
 
         Returns
         -------
@@ -919,7 +919,7 @@ class ScaDAG:
         
     def longest_path(self):
         """
-        Compute longest path.
+        Compute the length of the longest path.
 
         Returns
         -------
@@ -943,19 +943,27 @@ class ScaDAG:
     
     def yen_klongest_paths(self, k):
         """
-        Yen's algorithm for the K longest paths. Not used anywhere. Slow for large DAGs.
-        See Networkx documentation for shortest_simple_paths.
+        Yen's algorithm for the K longest paths. 
+        
+        Jin Y. Yen, “Finding the K Shortest Loopless Paths in a Network”, Management Science, Vol. 17, No. 11, 
+        Theory Series (Jul., 1971), pp. 712-716.
+        See also Networkx docs:
+        https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.simple_paths.shortest_simple_paths.html?highlight=shortest_simple_paths#networkx.algorithms.simple_paths.shortest_simple_paths
 
         Parameters
         ----------
         k : INT
-            Number of longest paths.
+            Number of longest paths to be identified.
 
         Returns
         -------
         LIST
             The k longest paths through the DAG.
-
+        
+        Notes
+        ----------
+        1. Not used anywhere.
+        2. Slow for large DAGs (perhaps to be expected: Yen's alg is O(n^3) and intended for generic graphs, not just DAGs). 
         """      
         assert self.aoa and self.johnson, 'ScaDAG not set-up for use with shortest_simple_paths'
         return list(islice(nx.shortest_simple_paths(self.graph, self.top_sort[0], self.top_sort[-1], weight="weight"), k))
@@ -963,17 +971,21 @@ class ScaDAG:
     
     def dag_klongest_paths(self, k):
         """
-        TODO.
+        Find the k longest paths through the DAG.
 
         Parameters
         ----------
-        k : TYPE
-            DESCRIPTION.
+        k : INT
+            Number of longest paths to be identified.
 
         Returns
         -------
-        None.
-
+        LIST
+            The k longest paths through the DAG.
+            
+        Notes
+        ----------
+        1. Faster than above for DAGs.
         """
             
         Q, lengths = {}, {}        
@@ -993,7 +1005,6 @@ class ScaDAG:
                     for delta in Q[p]:
                         path = delta + (t,)
                         R.append(path)
-                        # lengths[path] = lengths[delta] + edge_weight 
                         prov[path] = lengths[delta] + edge_weight 
                 # Sort R.
                 R = list(reversed(sorted(R, key=prov.get)))
@@ -1001,37 +1012,37 @@ class ScaDAG:
                 for delta in Q[t]:
                     lengths[delta] = prov[delta]
         return Q[self.top_sort[-1]]
-                
-            
-            
-                   
         
 # =============================================================================
-# GENERAL FUNCTIONS.
+# FUNCTIONS.
 # =============================================================================  
 
-def get_StochDAG(G, exp_cov):
+def get_StochDAG(G, mu_cov):
     """
-    G assumed to be DiGraph with float weights.
+    Convert Networkx DiGraph to StochDAG according to the value of mu_cov (the mean coefficient of variation for the weight RVs).  
+    Don't think this is actually used anywhere.                                                                                          
 
     Parameters
     ----------
-    G : TYPE
-        DESCRIPTION.
-    cov : TYPE
-        DESCRIPTION.
+    G : DIGRAPH
+        Weights of G assumed to be floats/ints and taken to be mean values of the weight RVs in returned StochDAG.
+    mu_cov : FLOAT
+        Mean coefficient of variation of the weight RVs.
 
     Returns
     -------
-    None.
-
-    """
+    StochDAG 
+        Graph with stochastic weights.
+        
+    Notes
+    -------
+    1. mu_cov is mean coefficient of variation of the weights but standard deviation always equal 0.1*mu_cov.
+    """    
     
+    task_covs = np.random.gamma(100, mu_cov*0.01, len(G))
+    edge_covs = np.random.gamma(100, mu_cov*0.01, G.number_of_edges())
     
-    task_covs = np.random.gamma(100, exp_cov*0.01, len(G))
-    edge_covs = np.random.gamma(100, exp_cov*0.01, G.number_of_edges())
-    
-    # Convert graph to ScaDAG.
+    # Get the topology.
     A = G.__class__()
     A.add_nodes_from(G)
     A.add_edges_from(G.edges)
@@ -1055,12 +1066,30 @@ def get_StochDAG(G, exp_cov):
     
 def clark(r1, r2, rho=0, minimization=False):
     """
-    Returns a new RV representing the maximization of self and other whose mean and variance
-    are computed using Clark's equations for the first two moments of the maximization of two normal RVs.
-    TODO: minimization from one of Canon's papers, find source and cite.
-    See:
+    Approximates the maximization of RVs r1 and r2 using Clark's equations for the first two moments of the maximization of two normal RVs.
+
+    Parameters
+    ----------
+    r1 : RV
+        The first maximand.
+    r2 : RV
+        The second maximand.
+    rho : FLOAT, optional
+        The linear correlation coefficient between r1 and r2. The default is 0.
+    minimization : BOOL, optional
+        If True, approximates the minimum of r1 and r2 using formulae derived by Canon and Jeannot instead. The default is False.
+
+    Returns
+    -------
+    RV
+        An RV whose mean and variance represent the approximate mean and variance of the maximum. 
+    
+    References
+    -------
     'The greatest of a finite set of random variables,'
     Charles E. Clark (1983).
+    'Precise evaluation of the efficiency and robustness of stochastic schedules,'
+    Louis-Claude Canon and Emmanuel Jeannot (2009).
     """
     a = sqrt(r1.var + r2.var - 2 * r1.sd * r2.sd * rho)     
     b = (r1.mu - r2.mu) / a           
@@ -1082,11 +1111,11 @@ def clark(r1, r2, rho=0, minimization=False):
     return RV(mu, var)  
 
 # =============================================================================
-# Helper functions for Kamburowski.
+# Helper functions for Kamburowski's bounds (StochDAG kamburowski method).
 # =============================================================================
 
 def h(mu1, var1, mu2, var2):
-    """Helper function for Kamburowski method."""
+    """Helper function for StochDAG Kamburowski method."""
     alpha = sqrt(var1 + var2)
     beta = (mu1 - mu2)/alpha
     cdf_beta = NormalDist().cdf(beta) 
@@ -1094,7 +1123,7 @@ def h(mu1, var1, mu2, var2):
                 
 def funder(X):
     """
-    Helper function for Kamburowksi method.
+    Helper function for StochDAG Kamburowksi method.
     X is any iterable of RVs, sorted in ascending order of their variance.
     """
     if len(X) == 1:
@@ -1106,7 +1135,7 @@ def funder(X):
 
 def fover(X):
     """
-    Helper function for Kamburowksi method.
+    Helper function for StochDAG Kamburowksi method.
     X is any iterable of RVs, sorted in ascending order of their variance.
     """
     if len(X) == 1:

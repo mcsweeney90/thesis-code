@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-How best to scarlarize the costs?
+Generate the results presented in Section 5.3 (Accelerating MCS).
 """
 
 import os, dill, random, scipy.stats
@@ -11,7 +11,7 @@ from math import sqrt
 
 import sys
 sys.path.append("../")
-from src import TDAG, SSTAR, SDLS, HEFT
+from src import StochTaskDAG, SSTAR, SDLS, HEFT
 
 def _broadcast_concatenate(x, y, axis):
     """
@@ -49,7 +49,7 @@ s_func = lambda r : r.mu + r.sd if r.mu > r.sd else r.mu + (r.sd/r.mu)
 
 size = 100
 stg_dag_path = '../../graphs/STG/{}'.format(size)
-mucovs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5] # TODO: what values?
+mucovs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5] 
 runs = 10
 trials = 100
 
@@ -63,7 +63,7 @@ for dname in os.listdir(stg_dag_path):
     print("\nDAG: {}".format(dname[:-5]))
     with open('{}/{}'.format(stg_dag_path, dname), 'rb') as file:
         T = dill.load(file)
-    G = TDAG(T)
+    G = StochTaskDAG(T)
     
     for mucov in mucovs: 
         for run in range(runs):
@@ -125,6 +125,7 @@ for dname in os.listdir(stg_dag_path):
             graph_data["UCB{} PROB".format(trials)] = prob2
             
             data.append(graph_data)  
-        
-df = pd.DataFrame(data)  
-df.to_csv('scalar.csv', encoding='utf-8', index=False)      
+
+# Save data. Commented out by default.
+# df = pd.DataFrame(data)  
+# df.to_csv('mcs.csv', encoding='utf-8', index=False)      

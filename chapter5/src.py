@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Stochastic scheduling simulator.
+Functions and classes used to generate results for Chapter 5, "Stochastic scheduling". 
 """
 
 import random
@@ -16,15 +16,8 @@ from statistics import NormalDist
 class RV:
     """
     Random variable class.
-    Notes:
-        - Defined by only mean and variance so can in theory be from any distribution but some functions
-          e.g., addition and multiplication assume (either explicitly or implicitly) RV is Gaussian.
-          (Addition/mult only done when RV represents a finish time/longest path estimate so is assumed to be
-          at least roughly normal anyway.)
-        - ID attribute is often useful (e.g., for I/O).
-        - Doesn't check that self.mu and self.var are nonzero for gamma. Obviously shouldn't be but sometimes tempting
-          programmatically.
-        - Random.random faster than numpy for individual realizations.
+    Defined only by mean and variance so can in theory be from any distribution but e.g., addition and multiplication assume
+    RV is Gaussian. 
     """
     def __init__(self, mu=0.0, var=0.0): 
         self.mu = mu
@@ -56,46 +49,71 @@ class RV:
         return RV(self.mu / c, self.var / (c * c))
     __rfloordiv__ = __floordiv__     
 
-class ADAG:
+class ScaTaskDAG:
     """
-    Represents a graph with average node and edge weights.
-    TODO: rename this - is scalar graph so SDAG arguably makes more sense...
+    Represents a task graph with possible node and edge weights that are scalars.
     """
     def __init__(self, graph):
-        """Graph is a NetworkX digraph with {Processor ID : float} node and edge weights. Usually output by functions elsewhere..."""
+        """
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph 
+            DAG weights of the form {processor ID : float}.
+
+        Returns
+        -------
+        None.
+        """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
         self.size = len(self.top_sort)
         
-    def node_mean(self, task, weighted=False):
-        """TODO."""
-        if not weighted:
-            return sum(self.graph.nodes[task]['weight'].values())/len(self.graph.nodes[task]['weight'])
-        s = sum(1/v for v in self.graph.nodes[task]['weight'].values())
-        return len(self.graph.nodes[task]['weight']) / s 
+    def node_mean(self, task):
+        """
+        Compute the arithmetic mean of the task's computation costs. 
+
+        Parameters
+        ----------
+        task : INT/STRING
+            ID of the task.
+
+        Returns
+        -------
+        FLOAT
+            The mean task weight.
+
+        """
+        return sum(self.graph.nodes[task]['weight'].values())/len(self.graph.nodes[task]['weight'])        
     
-    def edge_mean(self, parent, child, weighted=False):
-        """TODO."""
-        if not weighted:
-            return 2 * sum(self.graph[parent][child]['weight'].values()) / len(self.graph.nodes[parent]['weight'])**2
-        s1 = sum(1/v for v in self.graph.nodes[parent]['weight'].values())
-        s2 = sum(1/v for v in self.graph.nodes[child]['weight'].values())
-        cbar = 0.0
-        for k, v in self.graph[parent][child]['weight'].items():
-            t_w = self.graph.nodes[parent]['weight'][k[0]]
-            c_w = self.graph.nodes[child]['weight'][k[1]]             
-            cbar += v/(t_w * c_w) 
-        cbar *= 2 
-        cbar /= (s1 * s2)
-        return cbar 
+    def edge_mean(self, parent, child):
+        """
+        Compute the arithmetic mean of the communication costs between parent and child. 
+
+        Parameters
+        ----------
+        parent : INT/STRING
+            ID of the parent (transmitting) task.
         
-    def get_upward_ranks(self, weighted=False):
+        child : INT/STRING
+            ID of the child (receiving) task.
+
+        Returns
+        -------
+        FLOAT
+            The mean edge weight.
+
+        """
+        return 2 * sum(self.graph[parent][child]['weight'].values()) / len(self.graph.nodes[parent]['weight'])**2
+                
+    def get_upward_ranks(self):
         ranks = {}
         backward_traversal = list(reversed(self.top_sort))
         for t in backward_traversal:
-            ranks[t] = self.node_mean(t, weighted=weighted)
+            ranks[t] = self.node_mean(t)
             try:
-                ranks[t] += max(self.edge_mean(t, s, weighted=weighted) + ranks[s] for s in self.graph.successors(t))
+                ranks[t] += max(self.edge_mean(t, s) + ranks[s] for s in self.graph.successors(t))
             except ValueError:
                 pass   
         return ranks  
@@ -231,7 +249,7 @@ class ADAG:
         return min_work / n_workers
         
 
-class SDAG:
+class StochDAG:
     """Represents a graph with stochastic node and edge weights."""
     def __init__(self, graph):
         """Graph is an NetworkX digraph with RV nodes and edge weights. Usually output by functions elsewhere..."""            
@@ -275,7 +293,7 @@ class SDAG:
         Returns the classic PERT-CPM bound on the expected value of the longest path.
         If variance == True, also returns the variance of this path to use as a rough estimate
         of the longest path variance.
-        TODO: convert to ScaDAG method and compare timing.
+        TODO: convert to ScaTaskDAG method and compare timing.
         """
         C = {}       
         for t in self.top_sort:
@@ -471,11 +489,11 @@ class SDAG:
         Intended to be used for "averaged" graphs. 
         """    
         
-        R = SDAG(self.graph.reverse())
+        R = StochDAG(self.graph.reverse())
         return R.longest_path(method=method, mc_dist=mc_dist, mc_samples=mc_samples, full=True)       
                
-class TDAG:
-    """Represents a graph with stochastic node and edge weights."""
+class StochTaskDAG:
+    """Represents a task graph with possible node and edge weights that are stochastic."""
     def __init__(self, graph):
         """
         Graph is a NetworkX digraph with {Processor ID : RV} node and edge weights. Usually output by functions elsewhere...
@@ -488,7 +506,6 @@ class TDAG:
     def set_weights(self, n_processors=4, rtask=0.5, rmach=0.5, mu=1.0, V=0.5, muccr=1.0, mucov=0.1):
         """
         Used for setting randomized weights for DAGs.
-        TODO: double check.
         """
                 
         # Do corrections.
@@ -557,7 +574,7 @@ class TDAG:
         return list(np.amin(realizations, axis=0))
     
     def get_scalar_graph(self, scal_func=lambda r : r.mu):
-        """Return an ADAG object..."""
+        """Return an ScaTaskDAG object..."""
         
         # Copy the topology.
         A = self.graph.__class__()
@@ -572,8 +589,8 @@ class TDAG:
             for s in self.graph.successors(t):
                 A[t][s]['weight'] = {k : scal_func(v) for k, v in self.graph[t][s]['weight'].items()}
                 
-        # Return ADAG object.      
-        return ADAG(A)
+        # Return ScaTaskDAG object.      
+        return ScaTaskDAG(A)
     
     def get_averaged_graph(self, avg_type="NORMAL"):
         """Return a graph with averaged weights..."""
@@ -601,7 +618,7 @@ class TDAG:
                     m1 = 2*sum(r.mu for r in self.graph[t][s]['weight'].values())
                     v1 = 2*sum(r.var for r in self.graph[t][s]['weight'].values())
                     A[t][s]['weight'] = RV(m1, v1)/L2
-            return SDAG(A)
+            return StochDAG(A)
         
         raise ValueError("Invalid stochastic average type!")        
     
@@ -655,7 +672,7 @@ class TDAG:
                 if not S.has_edge(d, t):
                     S.add_edge(d, t)
                     S[d][t]['weight'] = 0.0
-        return SDAG(S) 
+        return StochDAG(S) 
     
     def priority_scheduling(self, 
                         priorities, 
@@ -667,7 +684,7 @@ class TDAG:
                         eval_samples=1000):
         """
         TODO. Insertion. Create ERV class?
-        Quite a few differences from the ADAG method:
+        Quite a few differences from the ScaTaskDAG method:
             1. Priorities are now assumed to be RVs/empirical RVs, so prio_function is needed to scalarize them (but in future might
                want to do something else instead). 
             2. Similarly for selection function.
@@ -717,8 +734,8 @@ class TDAG:
                         S[e]["X"]['weight'] = 0.0 
                         
                 # Compute longest path using specified method.
-                # worker_makespans[w] = SDAG(S).longest_path(method=eval_method, mc_dist=eval_dist, mc_samples=eval_samples) # TODO.
-                P = SDAG(S)
+                # worker_makespans[w] = StochDAG(S).longest_path(method=eval_method, mc_dist=eval_dist, mc_samples=eval_samples) # TODO.
+                P = StochDAG(S)
                 if eval_method in ["MC", "mc"]:
                     worker_dist = P.longest_path(method="MC", mc_dist=eval_dist, mc_samples=eval_samples) # TODO: ERV class. 
                     m = sum(worker_dist)/len(worker_dist)
@@ -757,27 +774,27 @@ class TDAG:
                 if all(p in where for p in self.graph.predecessors(c)):
                     ready_tasks.append(c) 
        
-        return SDAG(S)    
+        return StochDAG(S)    
         
         
 # =============================================================================
 # DETERMINISTIC HEURISTICS.
 # =============================================================================
 
-def HEFT(G, weighted=False):
+def HEFT(G):
     """
     HEFT scheduling heuristic.
-    TODO: assumes G is an ADAG. If TDAG, convert to scalar then apply?
+    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert to scalar then apply?
     """
     # Compute upward ranks.
-    U = G.get_upward_ranks(weighted=weighted)
+    U = G.get_upward_ranks()
     # Simulate to get the schedule and return it.
     return G.priority_scheduling(priorities=U, policy="EFT")
 
 def PEFT(G):
     """
     HEFT scheduling heuristic.
-    TODO: assumes G is an ADAG. If TDAG, convert to scalar then apply?
+    TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert to scalar then apply?
     """
     # Compute optimistic cost table.
     OCT = G.optimistic_cost_table(include_current=False)
@@ -792,7 +809,7 @@ def PEFT(G):
 
 def SSTAR(T, det_heuristic, scal_func=lambda r : r.mu, scalar_graph=None):
     """
-    Converts a TDAG S to a "scalarized" ADAG object using scal_func, then applies det_heuristic to it. 
+    Converts a StochTaskDAG S to a "scalarized" ScaTaskDAG object using scal_func, then applies det_heuristic to it. 
     When avg_type == "MEAN" and det_heuristic == HEFT, this is just HEFT applied to the stochastic graph.
     When avg_type == "SHEFT" and det_heuristic == HEFT, this is the Stochastic HEFT (SHEFT) heuristic.        
     'A stochastic scheduling algorithm for precedence constrained tasks on Grid',
@@ -822,7 +839,7 @@ def SSTAR(T, det_heuristic, scal_func=lambda r : r.mu, scalar_graph=None):
 
 def SDLS(T, X=0.9, return_graph=True, insertion=None):
     """
-    TODO: Insertion doesn't seem to make much of a difference but evaluate this more thoroughly.
+    Stochastic Dynamic Level Scheduling (SDLS) heuristic.
     TODO: Still may be too slow for large DAGs. Obviously copying graph etc is not optimal but those kind of things aren't the
     real bottlenecks.
     
@@ -965,12 +982,11 @@ def RobHEFT(T, alpha=45, method="C", mc_dist="N", mc_samples=1000):
     Canon and Jeannot (2010). 
     TODO: this is a deliberately fairly slow implementation that places clarity/re-use of existing code above speed. May write a 
     faster version if it's ever necessary...
-    TODO: not 100% convinced this actually works properly.
     """
     
     # Compute priorities.
     A = T.get_averaged_graph(avg_type="NORMAL") 
-    R = SDAG(A.graph.reverse())
+    R = StochDAG(A.graph.reverse())
     ranks = R.CPM(variance=True, full=True) # TODO: check this still works.
     # Get maximums for later normalization. TODO: look at this.
     mx_mu = ranks[T.top_sort[0]].mu
@@ -1123,7 +1139,7 @@ def MCS(S,
     A = S.graph.__class__()
     A.add_nodes_from(S.graph)
     A.add_edges_from(S.graph.edges)
-    G = ADAG(A)    
+    G = ScaTaskDAG(A)    
     
     # Production steps.
     for i in range(production_steps):
@@ -1173,19 +1189,37 @@ def MCS(S,
 # =============================================================================
 # GENERAL FUNCTIONS.
 # =============================================================================   
-    
+            
 def clark(r1, r2, rho=0, minimization=False):
     """
-    Returns a new RV representing the maximization of self and other whose mean and variance
-    are computed using Clark's equations for the first two moments of the maximization of two normal RVs.
-    TODO: minimization from one of Canon's papers, find source and cite.
-    See:
+    Approximates the maximization of RVs r1 and r2 using Clark's equations for the first two moments of the maximization of two normal RVs.
+
+    Parameters
+    ----------
+    r1 : RV
+        The first maximand.
+    r2 : RV
+        The second maximand.
+    rho : FLOAT, optional
+        The linear correlation coefficient between r1 and r2. The default is 0.
+    minimization : BOOL, optional
+        If True, approximates the minimum of r1 and r2 using formulae derived by Canon and Jeannot instead. The default is False.
+
+    Returns
+    -------
+    RV
+        An RV whose mean and variance represent the approximate mean and variance of the maximum. 
+    
+    References
+    -------
     'The greatest of a finite set of random variables,'
     Charles E. Clark (1983).
+    'Precise evaluation of the efficiency and robustness of stochastic schedules,'
+    Louis-Claude Canon and Emmanuel Jeannot (2009).
     """
     a = sqrt(r1.var + r2.var - 2 * r1.sd * r2.sd * rho)     
     b = (r1.mu - r2.mu) / a           
-    cdf = NormalDist().cdf(b)   
+    cdf = NormalDist().cdf(b)
     mcdf = 1 - cdf 
     pdf = NormalDist().pdf(b)      
     if minimization:
@@ -1200,9 +1234,7 @@ def clark(r1, r2, rho=0, minimization=False):
         var += (r2.mu**2 + r2.var) * mcdf
         var += (r1.mu + r2.mu) * a * pdf
         var -= mu**2         
-    return RV(mu, var)  
-        
-        
+    return RV(mu, var)   
 
         
                 

@@ -32,13 +32,12 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 6 # Changed from 3.
 plt.rcParams['legend.fontsize'] = 10
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
 # print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
-df = pd.read_csv('scalar.csv')
+df = pd.read_csv('mcs.csv')
 
 summary_path = "summaries/"
 pathlib.Path(summary_path).mkdir(parents=True, exist_ok=True)
@@ -48,18 +47,6 @@ pathlib.Path(plot_path).mkdir(parents=True, exist_ok=True)
 covs = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
 
 ####################################################################################################
-
-# data = df
-# reds = 100*(data["HEFT MU"] - data["MCS100 MU"]) / data["HEFT MU"]
-# print(reds.mean())
-
-# # Summary of SHEFT.
-# means = []
-# for cov in covs:
-#     data = df.loc[(df['COV'] == cov)] 
-#     sheft_reds = 100*(data["SHEFT MU"] - data["HEFT MU"]) / data["HEFT MU"]
-#     means.append(sheft_reds.mean())
-# print(means)
 
 # =============================================================================
 # Plots.
@@ -92,7 +79,7 @@ plt.grid(False, axis='x')
 ax.set_ylabel("MEAN PROB. SHORTER THAN HEFT ($\\beta$)", labelpad=5)
 ax.set_xticks(x)
 ax.set_xticklabels(covs)
-ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5) # TODO: or nu?
+ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5) 
 
 ax.tick_params(axis='x', which='minor', bottom=False) 
 
@@ -129,7 +116,7 @@ plt.close(fig)
 # ax.set_ylabel("MEAN $\mu$", labelpad=5)
 # ax.set_xticks(x)
 # ax.set_xticklabels(covs)
-# ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5) # TODO: or nu?
+# ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5)
 
 # ax.tick_params(axis='x', which='minor', bottom=False) 
 
@@ -147,8 +134,6 @@ clean = {0.05:"005", 0.1:"01", 0.15:"015", 0.2:"02", 0.25:"025", 0.3:"03", 0.5:"
 def plot_reductions(data, name, ylabel=True, colors=False):
     ucb_reds = 100*(data["HEFT MU"] - data["UCB100 MU"])/data["HEFT MU"]
     mc_reds = 100*(data["HEFT MU"] - data["MCS100 MU"])/data["HEFT MU"]   
-    ucb_better = (ucb_reds.values > 0.0).sum()
-    mc_better = (mc_reds.values > 0.0).sum()
     
     fig, ax = plt.subplots(dpi=400)
     plt.scatter(range(len(data)), mc_reds, marker='.', color='#348ABD', label="MC : {}".format(round(np.mean(mc_reds), 1)))
