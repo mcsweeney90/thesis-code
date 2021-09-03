@@ -201,7 +201,6 @@ class StochDAG:
         -------
         FLOAT
             CPM lower bound on the expected value.
-
         """
         C = {}       
         for t in self.top_sort:

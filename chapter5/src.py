@@ -108,6 +108,14 @@ class ScaTaskDAG:
         return 2 * sum(self.graph[parent][child]['weight'].values()) / len(self.graph.nodes[parent]['weight'])**2
                 
     def get_upward_ranks(self):
+        """
+        Compute upward ranks for all tasks.
+
+        Returns
+        -------
+        ranks : DICT
+            {Task ID : rank}.
+        """
         ranks = {}
         backward_traversal = list(reversed(self.top_sort))
         for t in backward_traversal:
@@ -121,7 +129,27 @@ class ScaTaskDAG:
     def comm_cost(self, parent, child, source, dest):
         """
         Get the communication/edge cost between parent and child when they are scheduled on source and dest (respectively).
-        Assumes communication is symmetric.  
+
+        Parameters
+        ----------
+        parent : INT/STRING
+            ID of parent task.
+        child : INT/STRING
+            ID of child task.
+        source : INT/STRING
+            ID of processor parent is scheduled on.
+        dest : INT/STRING
+            ID of processor child is scheduled on.
+
+        Returns
+        -------
+        FLOAT
+            The communication cost.
+        
+        Notes
+        -------
+        1. Assumed to be symmetric.
+
         """
         if source == dest:
             return 0.0
@@ -137,8 +165,28 @@ class ScaTaskDAG:
                         assignment=None,
                         return_assignment=True):
         """
-        Simulates the scheduling of the tasks in priority_list.
-        """ 
+        Simulates the scheduling of the task graph according to the task priorities.
+    
+        Parameters
+        ----------
+        priorities : DICT
+            Task priorities, {task ID : priority}. 
+        policy : STRING, optional
+            Processor selection rule. Default is "EFT" (earliest finish time).
+        lookahead_table : DICT, optional
+            Used if policy == "PEFT".
+        assignment : DICT, optional
+            An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}. The default is None.
+        return_assignment : BOOL, optional
+            If True, return the task assignments as a dict. The default is False.
+    
+        Returns
+        -------
+        schedule : DICT
+            In the form {Worker ID : [(task, start time, finish time), ...], ...}.
+        where : DICT, optional
+            If return_assignment == True. {Task ID : Worker ID, ...}.
+        """
         
         # Get list of workers - often useful.
         workers = self.graph.nodes[self.top_sort[0]]['weight'].keys()
@@ -217,8 +265,18 @@ class ScaTaskDAG:
     
     def optimistic_cost_table(self, include_current=False):
         """
-        Used in PEFT heuristic.
-        TODO: downward version.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic.
+        Alterative version that uses actual edge cost rather than average.
+
+        Parameters
+        ----------
+        include_current : BOOL, optional
+            Include current task weight when calculating optimistic future costs (True for priorities, False for selection). The default is False.
+
+        Returns
+        -------
+        OCT : DICT
+            {Task ID : {Worker ID : optimistic cost, ...}, ...}.         
         """
         
         workers = self.graph.nodes[self.top_sort[0]]['weight'].keys()
@@ -239,61 +297,56 @@ class ScaTaskDAG:
                 OCT[task][w] += max(child_values) if len(child_values) else 0.0 # Don't like...
         return OCT
     
-    def path_bound(self):
-        """Compute a lower bound on the makespan."""
-        return min(self.optimistic_cost_table(include_current=True)[self.top_sort[0]].values())
-    
-    def work_bound(self):
+    def makespan_lower_bound(self):
+        """
+        Computes a lower bound on the schedule makespan.
+
+        Returns
+        -------
+        FLOAT
+            The lower bound on the makespan.
+        """     
         n_workers = len(self.graph.nodes[self.top_sort[0]]['weight'])
+        path_bound = min(self.optimistic_cost_table(include_current=True)[self.top_sort[0]].values()) 
         min_work = sum(min(self.graph.nodes[t]['weight'].values()) for t in self.top_sort)
-        return min_work / n_workers
+        work_bound = min_work / n_workers
+        return max(path_bound, work_bound)   
         
 
 class StochDAG:
     """Represents a graph with stochastic node and edge weights."""
     def __init__(self, graph):
-        """Graph is an NetworkX digraph with RV nodes and edge weights. Usually output by functions elsewhere..."""            
-        self.graph = graph
-        self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
-        self.size = len(self.top_sort)
-        
-    def adjust_uncertainty(self, new_cov):
         """
-        Modify the uncertainty (i.e., the variance) of all weights.
-        Assumes that mean (and initial variance values) are already set.
-        Useful for observing the effect of uncertainty on a computed schedule.
+        Initialize with topology. 
 
         Parameters
         ----------
-        new_cov : TYPE
-            DESCRIPTION.
+        graph : Networkx DiGraph with RV node and edge weights
+            DAG topology and weights.
 
         Returns
         -------
         None.
-
-        """
-        for task in self.top_sort:
-            mu = self.graph.nodes[task]['weight'].mu
-            new_var = new_cov * mu # TODO: randomness?
-            new_sd = sqrt(new_var)
-            self.graph.nodes[task]['weight'].var = new_var
-            self.graph.nodes[task]['weight'].sd = new_sd
-            for child in self.graph.successors(task): 
-                if type(self.graph[task][child]['weight']) == float or type(self.graph[task][child]['weight']) == int:
-                    continue
-                mu = self.graph[task][child]['weight'].mu
-                new_var = new_cov * mu # TODO: randomness?
-                new_sd = sqrt(new_var)
-                self.graph[task][child]['weight'].var = new_var
-                self.graph[task][child]['weight'].sd = new_sd
+        """           
+        self.graph = graph
+        self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
+        self.size = len(self.top_sort)
                         
     def CPM(self, variance=False, full=False):
         """
-        Returns the classic PERT-CPM bound on the expected value of the longest path.
-        If variance == True, also returns the variance of this path to use as a rough estimate
-        of the longest path variance.
-        TODO: convert to ScaTaskDAG method and compare timing.
+        Classic PERT-CPM bound on the expected value of the longest path.
+
+        Parameters
+        ----------
+        variance : BOOL, optional
+            If True, also returns the variance of the path with maximal expected value. The default is False.
+        full : BOOL, optional
+            If True, return CPM bounds for all tasks not just the exit task (i.e., through the whole DAG). The default is False.
+
+        Returns
+        -------
+        FLOAT
+            CPM lower bound on the expected value.
         """
         C = {}       
         for t in self.top_sort:
@@ -325,11 +378,27 @@ class StochDAG:
         
     def longest_path(self, method="MC", mc_dist="U", mc_samples=1000, full=False):
         """
-        Evaluate the longest path through the entire DAG.
-        TODO: Few possible issues with MC method:
-            - Better way to determine memory limit.
-            - Full/exit task only versions make the code unwieldy. Check everything works okay.
-            - Worth ensuring positivity for normal and uniform? Do negative realizations ever occur?
+        Evaluate the longest path through the entire DAG. 
+
+        Parameters
+        ----------
+        method : STRING, optional
+            Which approximation method to use. Options are Sculli's method, CorLCA or MC. The default is "MC".
+        mc_dist : STRING, optional
+            Which distribution to use when sampling costs if method == "MC". The default is "U".
+        mc_samples : INT, optional
+            Number of MC samples to use if method == "MC". The default is 1000.
+        full : BOOL, optional
+            If True, return longest paths from all tasks to the sink. The default is False.
+
+        Returns
+        -------
+        RV, if method != "MC", else LIST/NUMPY ARRAY
+            The approximate longest path distribution.
+        
+        Notes
+        -------
+        Effectively combines the sculli, corLCA and monte_carlo methods from Chapter 4 code.
         """
         
         if method in ["S", "s", "SCULLI", "sculli", "Sculli"]:
@@ -411,14 +480,12 @@ class StochDAG:
                     m, s = self.graph.nodes[t]['weight'].mu, self.graph.nodes[t]['weight'].sd
                     if mc_dist in ["N", "NORMAL", "normal"]:  
                         w = abs(np.random.normal(m, s, mc_samples))
-                        # w = np.random.normal(m, s, mc_samples)
                     elif mc_dist in ["G", "GAMMA", "gamma"]:
                         v = self.graph.nodes[t]['weight'].var
                         sh, sc = (m * m)/v, v/m
                         w = np.random.gamma(sh, sc, mc_samples)
                     elif mc_dist in ["U", "UNIFORM", "uniform"]:
                         u = sqrt(3) * s
-                        # w = np.random.uniform(-u + m, u + m, mc_samples) 
                         w = abs(np.random.uniform(-u + m, u + m, mc_samples))
                     parents = list(self.graph.predecessors(t))
                     if not parents:
@@ -429,15 +496,13 @@ class StochDAG:
                         try:
                             m, s = self.graph[p][t]['weight'].mu, self.graph[p][t]['weight'].sd
                             if mc_dist in ["N", "NORMAL", "normal"]: 
-                                # e = np.random.normal(m, s, mc_samples)
                                 e = abs(np.random.normal(m, s, mc_samples))
                             elif mc_dist in ["G", "GAMMA", "gamma"]:
                                 v = self.graph[p][t]['weight'].var
                                 sh, sc = (m * m)/v, v/m
                                 e = np.random.gamma(sh, sc, mc_samples)
                             elif mc_dist in ["U", "UNIFORM", "uniform"]:
-                                u = sqrt(3) * s
-                                # e = np.random.uniform(-u + m, u + m, mc_samples)  
+                                u = sqrt(3) * s 
                                 e = abs(np.random.uniform(-u + m, u + m, mc_samples))
                             pmatrix.append(np.add(L[p], e))
                         except AttributeError:
@@ -457,38 +522,37 @@ class StochDAG:
                             E = L
                         else:
                             for t in self.top_sort:
-                                E[t] += L[t] # TODO: check if this throws an error because L[t] is an np array.
+                                E[t] += L[t] 
                     else:   
                         E += list(self.longest_path(method="MC", mc_samples=mx_samples, mc_dist=mc_dist))
                 if full:
                     L = self.longest_path(method="MC", mc_samples=extra, mc_dist=mc_dist, full=True)
                     for t in self.top_sort:
-                        E[t] += L[t] # TODO: check if this throws an error because L[t] is an np array.
+                        E[t] += L[t] 
                 else:                    
                     E += list(self.longest_path(method="MC", mc_samples=extra, mc_dist=mc_dist))
                 return E 
             
     def get_upward_ranks(self, method="S", mc_dist="NORMAL", mc_samples=1000):
         """
+        Get the upward rank of all tasks. Used in SDLS function (see below).
+        Not the most efficient way of doing this since the entire graph is copied, but the overhead is typically low compared
+        to the cost of the longest path algorithms so this isn't a huge issue.
         
         Parameters
         ----------
-        method : TYPE, optional
-            DESCRIPTION. The default is "S".
-        mc_dist : TYPE, optional
-            DESCRIPTION. The default is "NORMAL".
-        mc_samples : TYPE, optional
-            DESCRIPTION. The default is 1000.
+        method : STRING, optional
+            Which approximation method to use. Options are Sculli's method, CorLCA or MC. The default is "MC".
+        mc_dist : STRING, optional
+            Which distribution to use when sampling costs if method == "MC". The default is "U".
+        mc_samples : INT, optional
+            Number of MC samples to use if method == "MC". The default is 1000.
 
         Returns
         -------
-        None.
-        
-        Not the most efficient way of doing this since the entire graph is copied, but the overhead is typically low compared
-        to the cost of the longest path algorithms so this isn't a huge issue.
-        Intended to be used for "averaged" graphs. 
-        """    
-        
+        DICT
+            The upward ranks of all tasks, {Task ID : RV or NUMPY ARRAY, ...}. 
+        """          
         R = StochDAG(self.graph.reverse())
         return R.longest_path(method=method, mc_dist=mc_dist, mc_samples=mc_samples, full=True)       
                
@@ -496,8 +560,16 @@ class StochTaskDAG:
     """Represents a task graph with possible node and edge weights that are stochastic."""
     def __init__(self, graph):
         """
-        Graph is a NetworkX digraph with {Processor ID : RV} node and edge weights. Usually output by functions elsewhere...
-        TODO: create a "workers" attribute since often useful when weights have been set?
+        Initialize with topology. 
+
+        Parameters
+        ----------
+        graph : Networkx DiGraph
+            DAG topology.
+
+        Returns
+        -------
+        None.
         """
         self.graph = graph
         self.top_sort = list(nx.topological_sort(self.graph))    # Often saves time.  
@@ -505,7 +577,34 @@ class StochTaskDAG:
         
     def set_weights(self, n_processors=4, rtask=0.5, rmach=0.5, mu=1.0, V=0.5, muccr=1.0, mucov=0.1):
         """
-        Used for setting randomized weights for DAGs.
+        Set random weights. Basically uses correlation noise-based (CNB) method to set the weight means and then sets
+        variances according mu_cov.
+
+        Parameters
+        ----------
+        n_processors : INT, optional
+            Number of processors. The default is 4.
+        rtask : FLOAT, optional
+            Relatedness of task sizes. The default is 0.5.
+        rmach : FLOAT, optional
+            Relatedness of processor speeds. The default is 0.5.
+        mu : FLOAT, optional
+            Mean task execution cost. The default is 1.0.
+        V : FLOAT, optional
+            Coefficient of variation used in CNB method. The default is 0.5.
+        muccr : FLOAT, optional
+            The mean CCR. The default is 1.0.
+        mucov : FLOAT, optional
+            The mean coefficient of variation for the costs. The default is 0.1.
+
+        Returns
+        -------
+        None.
+        
+        Notes
+        -------
+        The CoV of the distribution used to sample the cost CoVs is always assumed to be 0.1.
+
         """
                 
         # Do corrections.
@@ -539,24 +638,7 @@ class StochTaskDAG:
                 for p in range(w + 1, n_processors):
                     m = D/B[w][p]
                     sd = m * edge_covs[i][w][p]
-                    self.graph[t][s]['weight'][(w, p)] = RV(m, sd) 
-                    
-    def adjust_cov(self, new_cov):
-        """
-        TODO.
-
-        Parameters
-        ----------
-        new_cov : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
-        return
-                                      
+                    self.graph[t][s]['weight'][(w, p)] = RV(m, sd)                                                 
                         
     def minimal_serial_time(self, mc_samples=1000):
         """

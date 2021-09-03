@@ -100,10 +100,13 @@ class DAG:
 
         Parameters
         ----------
-        nprocessors : TYPE
-            DESCRIPTION.
-        method : TYPE, optional
-            DESCRIPTION. The default is "CNB".
+        nprocessors : INT
+            The number of processors.
+        comp_method : STRING, optional
+            Method used to set computation costs. The default is "CNB".
+        comp_params : ITERABLE, optional
+            Parameters needed for method of setting computation costs. The default is None.
+        
 
         Returns
         -------
@@ -212,7 +215,26 @@ class DAG:
     def comm_cost(self, parent, child, source, dest):
         """
         Get the communication/edge cost between parent and child when they are scheduled on source and dest (respectively).
-        Assumes communication is symmetric.  
+
+        Parameters
+        ----------
+        parent : INT/STRING
+            ID of parent task.
+        child : INT/STRING
+            ID of child task.
+        source : INT/STRING
+            ID of processor parent is scheduled on.
+        dest : INT/STRING
+            ID of processor child is scheduled on.
+
+        Returns
+        -------
+        FLOAT
+            The communication cost.
+        
+        Notes
+        -------
+        1. Assumed to be symmetric.
         """
         if source == dest:
             return 0.0
@@ -267,16 +289,17 @@ class DAG:
 
         Parameters
         ----------
-        parent : TYPE
-            DESCRIPTION.
-        child : TYPE
-            DESCRIPTION.
-        avg_type : TYPE
-            DESCRIPTION.
+        parent : INT/STRING, optional
+            ID of parent task. Needed for some average types. The default is None.
+        child : INT/STRING, optional
+            ID of child task. Needed for some average types. The default is None.
+        avg_type : STRING, optional
+            The type of average to use. The default is "M".
 
         Returns
         -------
-        TODO.
+        FLOAT
+            The average edge cost.
         """                
         
         if self.comm_costs is not None:
@@ -494,12 +517,11 @@ class DAG:
     def monte_carlo(self, realizations, pmf="A", times=False):
         """
         Monte Carlo method. 
-        TODO: expand.
 
         Parameters
         ----------
-        pmf : TYPE, optional
-            DESCRIPTION. The default is "A".
+        pmf : STRING, optional
+            The pmfs to use to sample the costs. Options are "A" or "H". The default is "A".
 
         Returns
         -------
@@ -617,7 +639,7 @@ def priority_scheduling(G,
     priorities : DICT
         Task priorities, {task ID : priority}.  
     critical_assignment : DICT, optional
-        An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}.
+        An assignment of tasks to processors (or just processor types), {task ID : processor or processor type}. The default is None.
     return_schedule : BOOL, optional
         If True, return the schedule. The default is False.
 
