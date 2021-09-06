@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main source file for simulation code.
+Functions and classes used to generate results for Chapter 3, "The critical path in heterogeneous scheduling". 
 """
 
 import networkx as nx
@@ -109,6 +109,12 @@ class DAG:
             The number of processors.
         comp_method : STRING, optional
             Method used to set computation costs. The default is "CNB".
+            Options are:
+                1. "RB", range-based. 
+                2. "CVB", coefficient-of-variation-based.
+                3. "NB", noise-based.
+                4. "CNB", correlation noise-based.
+            See Canon, Heam and Philippe (2017) for descriptions of how all these work.  
         comp_params : ITERABLE, optional
             Parameters needed for method of setting computation costs. The default is None.
         vband : FLOAT, optional
@@ -121,6 +127,11 @@ class DAG:
         Returns
         -------
         None.
+        
+        References
+        ----------
+        Canon, L. C., Héam, P. C., & Philippe, L. (2017). Controlling the correlation of cost matrices to assess scheduling algorithm
+        performance on heterogeneous platforms. Concurrency and Computation: Practice and Experience, 29(15), e4185.
         """
         
         # Set DAG as weighted. Do this after in case of failure?
@@ -174,7 +185,6 @@ class DAG:
                 self.graph.nodes[t]['weight'] = costs[i]  
                 
         # Set the communication costs.
-        # TODO: too slow.
         # Bandwidths.
         B = np.random.gamma(1/vband**2, vband**2, size=(self.nworkers, self.nworkers))
         B_rep_sum = sum(np.reciprocal(B[np.triu_indices(B.shape[0], k=1)])) 
@@ -265,6 +275,36 @@ class DAG:
     def task_average(self, task, avg_type="M"):
         """
         Calculate average task weight. 
+
+        Parameters
+        ----------
+        task : INT/STRING
+            The task ID.
+        avg_type : STRING, optional
+            The type of average to use. The default is "M".
+            Options are:
+                1. "M", arithmetic mean.
+                2. "MD", median.
+                3. "B"/"SB", minimum value.
+                4. "W"/"SW", maximum value.
+                5. "HM"/"SHM", harmonic mean.
+                6. "GM"/"SGM", geometric mean.
+                7. "R", ratio of maximum to minimum.
+                8. "D", difference of maximum and minimum.
+                9. "NC", average type used in the HEFT-NC heuristic. (Basically 8 divided by 7.)
+                10. "SD", standard deviation.
+                11. "UCB", mean plus standard deviation. (Not used anywhere.)
+
+        Raises
+        ------
+        ValueError
+            Unrecognized average type.
+
+        Returns
+        -------
+        FLOAT
+            The average task weight.
+
         """
 
         data = self.graph.nodes[task]['weight']       
@@ -307,7 +347,19 @@ class DAG:
         child : INT/STRING, optional
             ID of child task. Needed for some average types. The default is None.
         avg_type : STRING, optional
-            The type of average to use. The default is "M".
+            The type of average to use. The default is "M". 
+            Options are:
+                1. "M", arithmetic mean.
+                2. "MD", median.
+                3. "B", smallest possible given the assumed parent and child weights.
+                4. "W", greatest possible given the assumed parent and child weights.
+                5. "SW", greatest possible.
+                6. "D", difference between maximum and minimum. Latter always zero so this is equivalent to previous.
+                7. "HM", harmonic mean weighted by parent and child computation costs.
+                8. "GM", geometric mean with zeroes ignored by adding one to all costs.
+                9. "SD", standard deviation.
+                10. "UCB", mean plus standard deviation. (Not used anywhere.)
+                11. "SB"/"SHM"/"SGM"/"R"/"NC", always zero (see task_average above).
 
         Returns
         -------
@@ -439,7 +491,24 @@ class DAG:
     
     def optimistic_critical_path(self, pessimistic=False, return_path=False):
         """
-        Modified version of Optimistic Cost Table defined in PEFT heuristic (without the edge average).
+        Modified version of Optimistic Cost Table defined in PEFT heuristic by Arabnejad and Barbosa (without the edge average).
+
+        Parameters
+        ----------
+        pessimistic : BOOL, optional
+            If True, returns worst-case critical path. The default is False.
+        return_path : BOOL, optional
+            If True, returns the path identified as being critical, not just the lengths. The default is False.
+
+        Returns
+        -------
+        OCT : DICT
+            {Task ID : {Worker ID : optimistic cost, ...}, ...}.
+        
+        References
+        ----------
+        Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+        IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
         """
         
         if return_path:
@@ -739,7 +808,7 @@ def priority_scheduling(G,
 
 def heft(G, avg_type="M", return_schedule=False):
     """
-    Heterogeneous Earliest Finish Time (HEFT).
+    Heterogeneous Earliest Finish Time (HEFT) by Topcuoglu, Hariri and Wu (2002). 
 
     Parameters
     ----------
@@ -756,6 +825,11 @@ def heft(G, avg_type="M", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Topcuoglu, H., Hariri, S., & Wu, M. Y. (2002). Performance-effective and low-complexity task scheduling for heterogeneous computing.
+    IEEE transactions on parallel and distributed systems, 13(3), 260-274. 
     """
     # Compute upward ranks.
     U = G.get_upward_ranks(avg_type=avg_type)
@@ -764,7 +838,7 @@ def heft(G, avg_type="M", return_schedule=False):
 
 def cpop(G, priorities, critical_path, return_schedule=False):
     """
-    Critical Path on a Processor (CPOP).
+    Critical Path on a Processor (CPOP) by Topcuoglu, Hariri and Wu (2002). 
     Note always used in contexts with path and priorities already computed.
 
     Parameters
@@ -784,6 +858,11 @@ def cpop(G, priorities, critical_path, return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Topcuoglu, H., Hariri, S., & Wu, M. Y. (2002). Performance-effective and low-complexity task scheduling for heterogeneous computing.
+    IEEE transactions on parallel and distributed systems, 13(3), 260-274. 
     """     
         
     # Decide where to schedule critical tasks.

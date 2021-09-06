@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Classes and functions for accelerated scheduling simulation model. 
+Functions and classes used to generate results for Chapter 2, "Optimizing scheduling heuristics for accelerated architectures". 
 """
 
 import networkx as nx
@@ -59,7 +59,7 @@ class DAG:
         
     def set_random_weights(self, r, s, gpu_mean=1.0, gpu_cov=1.0, cpu_mean=15.0, cpu_cov=1.0, ccr=1.0):
         """
-        Set randomly generated weights (for STG graphs).
+        Randomly generate computation and communication costs (for STG graphs).
 
         Parameters
         ----------
@@ -73,7 +73,7 @@ class DAG:
             Coefficient of variation of GPU execution time distribution. The default is 1.0.
         cpu_mean : FLOAT, optional
             Mean CPU task execution time. The default is 15.0.
-        cpu_cov : TYPE, optional
+        cpu_cov : FLOAT, optional
             Coefficient of variation of CPU execution time distribution. The default is 1.0.
         ccr : FLOAT, optional
             Target computation-to-communication ratio of DAG. Defined as sum of all mean edge weights over sum of all mean task weights. 
@@ -100,12 +100,11 @@ class DAG:
             gran = uniform(0, 2) * mean_granularity            
             d = (gran*avg_comp*(r + s)**2) / (s * (2*r + s - 1))
             for child in self.graph.successors(task):
-                self.graph[task][child]['weight'] = d                
-            
+                self.graph[task][child]['weight'] = d     
     
     def edge_average(self, parent, child, r=1, s=1, avg_type="M"):
         """
-        Calculates the average weight of edge from parent to child.
+        Calculates the average weight of edge from parent to child. See Table 2.2 in thesis.
 
         Parameters
         ----------
@@ -238,7 +237,7 @@ class DAG:
     
     def orig_optimistic_cost_table(self, r, s):
         """
-        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and Barbosa.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and Barbosa (2013).
         Original version that uses average weights for edge.
 
         Parameters
@@ -251,7 +250,12 @@ class DAG:
         Returns
         -------
         OCT : DICT
-            {Task ID : {Worker ID : optimistic cost, ...}, ...}.
+            {Task ID : {CPU : cost1, GPU : cost2}, ...}.
+        
+        References
+        ----------
+        Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+        IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
         """
         
         worker_types = ["c", "g"]
@@ -272,7 +276,7 @@ class DAG:
     
     def optimistic_cost_table(self, include_current=False):
         """
-        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and Barbosa (2013).
         Alterative version that uses actual edge cost rather than average.
 
         Parameters
@@ -283,11 +287,16 @@ class DAG:
         Returns
         -------
         OCT : DICT
-            {Task ID : {Worker ID : optimistic cost, ...}, ...}.
+            {Task ID : {CPU : cost1, GPU : cost2}, ...}.
             
         Notes
         -------
         Unlike above, r and s not required since don't use average values for edge weight.
+        
+        References
+        ----------
+        Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+        IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
         """
         
         worker_types = ["c", "g"]
@@ -464,6 +473,18 @@ def average(c, g, r=1, s=1, avg_type="M"):
         Number of GPUs/multiplicity of g. Not needed for all average types. The default is 1.
     avg_type : STRING, optional
         The average type to use (e.g., arithmetic mean). The default is "M".
+        Options are:
+            1. "M", arithmetic mean.
+            2. "MD", median.
+            3. "B"/"SB", minimum value.
+            4. "W"/"SW", maximum value.
+            5. "HM"/"SHM", harmonic mean.
+            6. "GM"/"SGM", geometric mean.
+            7. "R", ratio of maximum to minimum.
+            8. "D", difference of maximum and minimum.
+            9. "NC", average type used in the HEFT-NC heuristic. (Basically 8 divided by 7.)
+            10. "SD", standard deviation.
+            11. "UCB", mean plus standard deviation. (Not used anywhere.)
 
     Raises
     ------

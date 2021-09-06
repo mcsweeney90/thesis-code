@@ -264,7 +264,7 @@ class ScaTaskDAG:
     
     def optimistic_cost_table(self, include_current=False):
         """
-        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic.
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and Barbosa (2013).
         Alterative version that uses actual edge cost rather than average.
 
         Parameters
@@ -275,7 +275,12 @@ class ScaTaskDAG:
         Returns
         -------
         OCT : DICT
-            {Task ID : {Worker ID : optimistic cost, ...}, ...}.         
+            {Task ID : {Worker ID : optimistic cost, ...}, ...}.    
+        
+        References
+        ----------
+        Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+        IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
         """
         
         workers = self.graph.nodes[self.top_sort[0]]['weight'].keys()
@@ -398,6 +403,12 @@ class StochDAG:
         Notes
         -------
         Effectively combines the sculli, corLCA and monte_carlo methods from Chapter 4 code.
+        
+        References
+        ----------
+        1. Sculli, D. (1983). The completion time of PERT networks. Journal of the Operational Research Society, 34(2), 155-158.
+        2. Canon, L. C., & Jeannot, E. (2016). Correlation-aware heuristics for evaluating the distribution of the longest path length 
+           of a DAG with random weights. IEEE Transactions on Parallel and Distributed Systems, 27(11), 3158-3171.
         """
         
         if method in ["S", "s", "SCULLI", "sculli", "Sculli"]:
@@ -946,7 +957,7 @@ class StochTaskDAG:
 
 def HEFT(G):
     """
-    Heterogeneous Earliest Finish Time (HEFT).
+    Heterogeneous Earliest Finish Time (HEFT) by Topcuoglu, Hariri and Wu (2002). 
     TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert then apply?
 
     Parameters
@@ -958,6 +969,11 @@ def HEFT(G):
     -------
     schedule : DICT, optional
         Schedule in the form {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Topcuoglu, H., Hariri, S., & Wu, M. Y. (2002). Performance-effective and low-complexity task scheduling for heterogeneous computing.
+    IEEE transactions on parallel and distributed systems, 13(3), 260-274.  
     """
     # Compute upward ranks.
     U = G.get_upward_ranks()
@@ -966,7 +982,7 @@ def HEFT(G):
 
 def PEFT(G):
     """
-    Predict Earliest Finish Time (PEFT).
+    Predict Earliest Finish Time (PEFT) by Arabnejad and Barbosa (2013).
     TODO: assumes G is an ScaTaskDAG. If StochTaskDAG, convert then apply?
 
     Parameters
@@ -978,6 +994,11 @@ def PEFT(G):
     -------
     schedule : DICT, optional
         Schedule in the form {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+    IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
     """
     # Compute optimistic cost table.
     OCT = G.optimistic_cost_table(include_current=False)
@@ -1015,8 +1036,8 @@ def SSTAR(T, det_heuristic, scal_func=lambda r : r.mu, scalar_graph=None):
     
     References
     ----------
-    'A stochastic scheduling algorithm for precedence constrained tasks on Grid',
-    Tang, Li, Liao, Fang, Wu (2011).
+    Tang, X., Li, K., Liao, G., Fang, K., & Wu, F. (2011). A stochastic scheduling algorithm for precedence constrained tasks on grid. 
+    Future Generation Computer Systems, 27(8), 1083-1091.
     """
     # Convert to an "averaged" graph with scalar weights (if necessary).
     if scalar_graph is None:
@@ -1024,14 +1045,11 @@ def SSTAR(T, det_heuristic, scal_func=lambda r : r.mu, scalar_graph=None):
     # Apply the chosen heuristic.
     P, where = det_heuristic(scalar_graph) 
     # Convert fullahead schedule to its (stochastic) disjunctive graph and return.
-    return T.schedule_to_graph(schedule=P, where_scheduled=where)
-    
+    return T.schedule_to_graph(schedule=P, where_scheduled=where)    
 
 def SDLS(T, X=0.9, return_graph=True, insertion=None):
     """
-    Stochastic Dynamic Level Scheduling (SDLS) heuristic.
-    TODO: Still may be too slow for large DAGs. Obviously copying graph etc is not optimal but those kind of things aren't the
-    real bottlenecks.
+    Stochastic Dynamic Level Scheduling (SDLS) heuristic by Li et al (2013).
 
     Parameters
     ----------
@@ -1050,6 +1068,11 @@ def SDLS(T, X=0.9, return_graph=True, insertion=None):
         The schedule graph as a StochDAG
     else:
         The schedule as a DICT.
+        
+    References
+    ----------
+    Li, K., Tang, X., Veeravalli, B., & Li, K. (2013). Scheduling precedence constrained stochastic tasks on heterogeneous cluster systems.
+    IEEE Transactions on computers, 64(1), 191-204.
     """
     
     mean = lambda r : 0.0 if (type(r) == float or type(r) == int) else r.mu # TODO: only needed for insertion.
@@ -1140,7 +1163,7 @@ def SDLS(T, X=0.9, return_graph=True, insertion=None):
 
 def closest_point(est_makespans, alpha=45):
     """
-    Helper function for RobHEFT.
+    Helper function for RobHEFT below.
 
     Parameters
     ----------
@@ -1177,9 +1200,7 @@ def closest_point(est_makespans, alpha=45):
 
 def RobHEFT(T, alpha=45, eval_method="C", mc_dist="N", mc_samples=1000):
     """
-    RobHEFT (HEFT with robustness) heuristic.
-    'Evaluation and optimization of the robustness of DAG schedules in heterogeneous environments,'
-    Canon and Jeannot (2010). 
+    RobHEFT (HEFT with robustness) heuristic by Canon and Jeannot (2009).
     
     This is a deliberately fairly slow implementation that places clarity/re-use of existing code above speed. May write a 
     faster version if it's ever necessary, but not used anywhere at the moment.
@@ -1201,6 +1222,11 @@ def RobHEFT(T, alpha=45, eval_method="C", mc_dist="N", mc_samples=1000):
     -------
     StochDAG
         Schedule graph.
+    
+    References
+    ----------
+    Canon, L. C., & Jeannot, E. (2009). Evaluation and optimization of the robustness of DAG schedules in heterogeneous environments. 
+    IEEE Transactions on Parallel and Distributed Systems, 21(4), 532-546.
     """    
     # Compute priorities.
     A = T.get_averaged_graph(avg_type="NORMAL") 
@@ -1216,86 +1242,7 @@ def RobHEFT(T, alpha=45, eval_method="C", mc_dist="N", mc_samples=1000):
                              selection_function=sel_function,
                              eval_method=eval_method, 
                              eval_dist=mc_dist, 
-                             eval_samples=mc_samples)        
-    
-# def MCS(S, 
-#         production_heuristic=HEFT, 
-#         production_steps=100, 
-#         threshold=0.02, 
-#         prod_dist="N",
-#         return_all=False,
-#         eval_method="C",
-#         mc_samples=1000,
-#         criterion="MU",
-#         c=1.0,
-#         return_mkspan=True):
-#     """ 
-#     Monte Carlo Scheduling (MCS).
-#     'Stochastic DAG scheduling using a Monte Carlo approach,'
-#     Zheng and Sakellariou (2013).
-#     Slightly slower than below. 
-#     """        
-    
-#     if prod_dist in ["N", "n", "NORMAL", "normal"]:
-#         real_func = lambda r : abs(random.gauss(r.mu, r.sd))
-#     elif prod_dist in ["G", "g", "GAMMA", "gamma"]:
-#         real_func = lambda r : random.gammavariate(alpha=(r.mu**2/r.var), beta=r.var/r.mu) # TODO: check these parameters.
-#     elif prod_dist in ["U", "u", "UNIFORM", "uniform"]:
-#         real_func = lambda r : abs(random.uniform(r.mu - sqrt(3)*r.sd, r.mu + sqrt(3)*r.sd)) 
-            
-#     # Create list of schedules.
-#     L = []
-    
-#     # Get the standard static schedule (i.e., with mean values). 
-#     avg_graph = S.get_scalar_graph() 
-#     mean_static_schedule, where = production_heuristic(avg_graph) 
-#     # Get schedule graph (easier to evaluate makespan).
-#     omega_mean = S.schedule_to_graph(schedule=mean_static_schedule, where_scheduled=where)
-#     # Add schedule graph to L.
-#     L.append(omega_mean)
-#     # Compute initial qualification check.
-#     min_cpm = omega_mean.CPM()        
-    
-#     # Production steps.
-#     for _ in range(production_steps):
-#         # Generate a scalarized graph. 
-#         G = S.get_scalar_graph(scal_func=real_func)
-#         # Compute schedule.
-#         candidate, where = production_heuristic(G)
-#         # Convert schedule to graph for evaluation. 
-#         omega = S.schedule_to_graph(schedule=candidate, where_scheduled=where)
-#         # TODO. Want a quick check here that omega has not been seen before but usually more expensive. 
-#         # (Usual suspects like set conversion don't work with schedule graphs.)
-#         # Calculate CPM bound on expected value of omega makespan and compare.
-#         omega_cpm = omega.CPM() 
-#         if omega_cpm < min_cpm * (1 + threshold): 
-#             L.append(omega)
-#         # Update qualification check.
-#         min_cpm = min(min_cpm, omega_cpm)
-#     if return_all:
-#         return L
-    
-#     # Evaluate schedule makespans.
-#     if eval_method in ["MC", "mc", "MONTE CARLO", "Monte Carlo", "monte carlo"]:
-#         makespans = {}
-#         for pi in L:
-#             dist = pi.longest_path(method=eval_method, mc_dist=prod_dist, mc_samples=mc_samples)
-#             mu = np.mean(dist)
-#             var = np.var(dist)
-#             makespans[pi] = RV(mu, var)
-#     else:
-#         makespans = {pi : pi.longest_path(method=eval_method) for pi in L} 
-    
-#     # Choose the best schedule according to the specified criterion.
-#     if criterion in ["MU", "mu", "MEAN", "mean", "M", "m"]:
-#         pi_star = min(L, key=lambda pi : makespans[pi].mu)
-#     elif criterion in ["SD", "sd", "SIGMA", "sigma"]:
-#         pi_star = min(L, key=lambda pi : makespans[pi].sd)
-#     elif criterion in ["UCB", "ucb"]:
-#         pi_star = min(L, key=lambda pi : makespans[pi].mu + c*makespans[pi].sd)
-#     if return_mkspan:
-#         return pi_star, makespans[pi_star]
-#     return pi_star
+                             eval_samples=mc_samples)            
 
 def MCS(T, 
         production_heuristic=HEFT, 
@@ -1309,10 +1256,7 @@ def MCS(T,
         c=1.0,
         return_mkspan=True):
     """
-    Monte Carlo Scheduling (MCS).
-    'Stochastic DAG scheduling using a Monte Carlo approach,' Zheng and Sakellariou (2013).
-    
-    This is a slightly faster version than above - although still pretty slow.
+    Monte Carlo Scheduling (MCS) heuristic by Zheng and Sakellariou (2013).
 
     Parameters
     ----------
@@ -1344,6 +1288,11 @@ def MCS(T,
     StochDAG
         Schedule graph.
     
+    References
+    ----------
+    Zheng, W., & Sakellariou, R. (2013). Stochastic DAG scheduling using a Monte Carlo approach. 
+    Journal of Parallel and Distributed Computing, 73(12), 1673-1689.
+    
     TODO
     ------
     1. Ideally want a quick check that schedule has not been seen before but this tends to be more expensive than evaluating it again.
@@ -1373,8 +1322,7 @@ def MCS(T,
             elif prod_dist in ["G", "g", "GAMMA", "gamma"]:
                 realizations[((u, v), key)] = np.random.gamma(mu**2/var, var/mu, production_steps)
             elif prod_dist in ["U", "u", "UNIFORM", "uniform"]:
-                realizations[((u, v), key)] = abs(np.random.uniform(mu - sqrt(3)*sd, mu + sqrt(3)*sd, production_steps))
-            
+                realizations[((u, v), key)] = abs(np.random.uniform(mu - sqrt(3)*sd, mu + sqrt(3)*sd, production_steps))            
         
     # Create list of schedules.
     L = []
@@ -1464,10 +1412,9 @@ def clark(r1, r2, rho=0, minimization=False):
     
     References
     -------
-    'The greatest of a finite set of random variables,'
-    Charles E. Clark (1983).
-    'Precise evaluation of the efficiency and robustness of stochastic schedules,'
-    Louis-Claude Canon and Emmanuel Jeannot (2009).
+    1. Clark, C. E. (1961). The greatest of a finite set of random variables. Operations Research, 9(2), 145-162.
+    2. Canon, L. C., & Jeannot, E. (2009). Precise evaluation of the efficiency and the robustness of stochastic 
+       DAG schedules (Doctoral dissertation, INRIA).
     """
     a = sqrt(r1.var + r2.var - 2 * r1.sd * r2.sd * rho)     
     b = (r1.mu - r2.mu) / a           

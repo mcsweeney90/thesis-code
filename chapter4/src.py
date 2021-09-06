@@ -113,7 +113,6 @@ class StochDAG:
         -------
         INT
             Number of distinct paths through DAG.
-
         """      
         paths = {}
         for t in self.top_sort:
@@ -143,7 +142,6 @@ class StochDAG:
         -------
         ScaDAG
             Graph with scalar weights.
-
         """
         
         # Copy the topology.
@@ -180,7 +178,7 @@ class StochDAG:
                 for s in self.graph.successors(t):
                     try:
                         A[t][s]['weight'] = scal_func(self.graph[t][s]['weight']) 
-                    except AttributeError: # TODO: correct error?
+                    except AttributeError: 
                         A[t][s]['weight'] = 0.0
                 
         # Return ScaDAG object.      
@@ -244,7 +242,11 @@ class StochDAG:
             Lower bound on the variance.
         FLOAT
             Upper bound on the variance.
-
+        
+        References
+        ----------
+        Kamburowski, J. (1985). Normally distributed activity durations in PERT networks. Journal of the Operational Research Society, 
+        36(11), 1051-1057.
         """
         lm, um, ls, us = {},{}, {}, {}
         for t in self.top_sort:
@@ -305,8 +307,6 @@ class StochDAG:
     def sculli(self, reverse=False):
         """
         Sculli's method for estimating the longest path distribution for a DAG with stochastic weights.
-        'The completion time of PERT networks,'
-        Sculli (1983).  
 
         Parameters
         ----------
@@ -317,7 +317,10 @@ class StochDAG:
         -------
         RV
             The approximated longest path distribution (i.e., its mean and variance).
-
+        
+        References
+        ----------
+        Sculli, D. (1983). The completion time of PERT networks. Journal of the Operational Research Society, 34(2), 155-158.
         """
         
         if reverse:
@@ -340,8 +343,6 @@ class StochDAG:
     def corLCA(self, reverse=False):
         """
         CorLCA heuristic for estimating the longest path distribution for a DAG with stochastic weights.
-        'Correlation-aware heuristics for evaluating the distribution of the longest path length of a DAG with random weights,' 
-        Canon and Jeannot (2016). 
 
         Parameters
         ----------
@@ -358,7 +359,11 @@ class StochDAG:
         -------
         RV
             The approximated longest path distribution (i.e., its mean and variance).
-
+        
+        References
+        ----------
+        Canon, L. C., & Jeannot, E. (2016). Correlation-aware heuristics for evaluating the distribution of the longest path length 
+        of a DAG with random weights. IEEE Transactions on Parallel and Distributed Systems, 27(11), 3158-3171.
         """  
         
         if reverse:
@@ -441,7 +446,6 @@ class StochDAG:
         -------
         LIST/NUMPY ARRAY
             The empirical longest path distribution.
-
         """  
         mem_limit = virtual_memory().available // 10 # Just a guideline...
         if self.size*samples < mem_limit:   
@@ -785,8 +789,7 @@ class StochDAG:
 
         Returns
         -------
-        The set of longest path candidates.
-        
+        The set of longest path candidates.        
         """
         
         # Compute comparison for determining if path is retained.
@@ -830,8 +833,7 @@ class StochDAG:
 
         Returns
         -------
-        The set of longest path candidates.
-        
+        The set of longest path candidates.        
         """
                 
         # Compute length of paths from source to all tasks with maximal mean.  
@@ -870,7 +872,6 @@ class StochDAG:
         Returns
         -------
         The pruned graph. 
-
         """
         
         critical_tasks, critical_edges = tuple(), []
@@ -943,12 +944,7 @@ class ScaDAG:
     def yen_klongest_paths(self, k):
         """
         Yen's algorithm for the K longest paths. 
-        
-        Jin Y. Yen, “Finding the K Shortest Loopless Paths in a Network”, Management Science, Vol. 17, No. 11, 
-        Theory Series (Jul., 1971), pp. 712-716.
-        See also Networkx docs:
-        https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.simple_paths.shortest_simple_paths.html?highlight=shortest_simple_paths#networkx.algorithms.simple_paths.shortest_simple_paths
-
+       
         Parameters
         ----------
         k : INT
@@ -963,6 +959,12 @@ class ScaDAG:
         ----------
         1. Not used anywhere.
         2. Slow for large DAGs (perhaps to be expected: Yen's alg is O(n^3) and intended for generic graphs, not just DAGs). 
+                                
+        References
+        ----------
+        Yen, J. Y. (1971). Finding the k shortest loopless paths in a network. Management Science, 17(11), 712-716.
+        See also Networkx docs:
+        https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.simple_paths.shortest_simple_paths.html?highlight=shortest_simple_paths#networkx.algorithms.simple_paths.shortest_simple_paths
         """      
         assert self.aoa and self.johnson, 'ScaDAG not set-up for use with shortest_simple_paths'
         return list(islice(nx.shortest_simple_paths(self.graph, self.top_sort[0], self.top_sort[-1], weight="weight"), k))
@@ -1085,10 +1087,9 @@ def clark(r1, r2, rho=0, minimization=False):
     
     References
     -------
-    'The greatest of a finite set of random variables,'
-    Charles E. Clark (1983).
-    'Precise evaluation of the efficiency and robustness of stochastic schedules,'
-    Louis-Claude Canon and Emmanuel Jeannot (2009).
+    1. Clark, C. E. (1961). The greatest of a finite set of random variables. Operations Research, 9(2), 145-162.
+    2. Canon, L. C., & Jeannot, E. (2009). Precise evaluation of the efficiency and the robustness of stochastic 
+       DAG schedules (Doctoral dissertation, INRIA).
     """
     a = sqrt(r1.var + r2.var - 2 * r1.sd * r2.sd * rho)     
     b = (r1.mu - r2.mu) / a           
