@@ -33,12 +33,12 @@ class DAG:
         
     def set_cholesky_weights(self, timings, nb=1024):
         """
-        Set weights for Cholesky DAGs. 
+        Set possible computation and communication costs for Cholesky DAGs. 
 
         Parameters
         ----------
         timings : DICT
-            See chol_graphs directory.
+            Timing data used to set the costs. (See chol_graphs directory.)
         nb : INT, optional
             Tile size. The default is 1024.
 
@@ -238,7 +238,7 @@ class DAG:
     
     def orig_optimistic_cost_table(self, r, s):
         """
-        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and [citation].
+        Optimistic cost table used in Predict Earlier Finish Time (PEFT) heuristic by Arabnejad and Barbosa.
         Original version that uses average weights for edge.
 
         Parameters
@@ -647,7 +647,7 @@ def priority_scheduling(G, r, s,
             best_gpu = min(workers[r:], key=lambda w:worker_finish_times[w][1]) 
             if worker_finish_times[best_cpu][1] < worker_finish_times[best_gpu][1]:
                 best_worker = best_cpu
-            elif task == G.top_sort[-1]: # TODO: ugly...
+            elif task == G.top_sort[-1]: 
                 best_worker = best_gpu
             else:       
                 gpu_saving = worker_finish_times[best_cpu][1] - worker_finish_times[best_gpu][1]                
@@ -681,7 +681,7 @@ def priority_scheduling(G, r, s,
             else:
                 best_worker = best_gpu
                 
-        elif sel_policy in ["FL", "BL"]: # TODO: slow. 
+        elif sel_policy in ["FL", "BL"]: 
             children = list(sorted(G.graph.successors(task), key=priorities.get))
             if sel_policy == "FL":
                 poss_workers = workers
@@ -706,7 +706,7 @@ def priority_scheduling(G, r, s,
                     pschedule[bw].insert(idx, (task, st, ft)) 
                 # Consider each child.
                 for child in children:
-                    cworker_finish_times = {}#
+                    cworker_finish_times = {}
                     valid_parents = list(p for p in G.graph.predecessors(child) if p in pwhere)
                     for w in workers:              
                         
@@ -772,7 +772,7 @@ def priority_scheduling(G, r, s,
 
 def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
     """
-    Heterogeneous Earliest Finish Time (HEFT).
+    Heterogeneous Earliest Finish Time (HEFT) by Topcuoglu, Hariri and Wu (2002).    
 
     Parameters
     ----------
@@ -795,6 +795,11 @@ def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Topcuoglu, H., Hariri, S., & Wu, M. Y. (2002). Performance-effective and low-complexity task scheduling for heterogeneous computing.
+    IEEE transactions on parallel and distributed systems, 13(3), 260-274.  
     """
     # Compute upward ranks.
     U = G.get_upward_ranks(r, s, avg_type=avg_type)
@@ -805,7 +810,7 @@ def heft(G, r, s, avg_type="M", sel_policy="EFT", return_schedule=False):
 
 def peft(G, r, s, original=False, avg_type="M", return_schedule=False):
     """
-    Predict Earliest Finish Time (PEFT).
+    Predict Earliest Finish Time (PEFT) by Arabnejad and Barbosa (2013).
 
     Parameters
     ----------
@@ -828,6 +833,11 @@ def peft(G, r, s, original=False, avg_type="M", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Arabnejad, H., & Barbosa, J. G. (2013). List scheduling algorithm for heterogeneous systems by an optimistic cost table. 
+    IEEE Transactions on Parallel and Distributed Systems, 25(3), 682-694.
     """
     
     # Compute optimistic cost table and ranks.
@@ -845,7 +855,7 @@ def peft(G, r, s, original=False, avg_type="M", return_schedule=False):
     
 def cpop(G, r, s, avg_type="M", return_schedule=False):
     """
-    Critical Path on a Processor (CPOP).
+    Critical Path on a Processor (CPOP) by Topcuoglu, Hariri and Wu (2002).
 
     Parameters
     ----------
@@ -866,6 +876,11 @@ def cpop(G, r, s, avg_type="M", return_schedule=False):
         The schedule makespan.
     schedule : DICT, optional
         If return_schedule == True. {Worker ID : [(task, start time, finish time), ...], ...}.
+    
+    References
+    ----------
+    Topcuoglu, H., Hariri, S., & Wu, M. Y. (2002). Performance-effective and low-complexity task scheduling for heterogeneous computing.
+    IEEE transactions on parallel and distributed systems, 13(3), 260-274.
     """
     
     # Compute upward and downward ranks.

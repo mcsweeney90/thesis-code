@@ -1,4 +1,4 @@
-# Thesis
+# Thesis code
 
 This is the central repository for the (Python) code used to generate results in my PhD thesis, "Scheduling with Precedence Constraints in Heterogeneous Parallel Computing".
 
@@ -18,7 +18,7 @@ This is the central repository for the (Python) code used to generate results in
 
 ## Getting started
 
-I would strongly recommend using a version of Python **>= 3.8** since some of the code in `chapter4` and `chapter5` uses functions from the `statistics` module that were only introduced in **3.8**.
+I strongly recommend using a version of Python **>= 3.8** since some of the code in `chapter4` and `chapter5` uses functions from the `statistics` module that were only introduced in **3.8**.
 Older Python3 versions might be adequate for `chapter2` and `chapter3` but Python2 definitely will not work. 
 
 To install all relevant Python packages:
