@@ -39,7 +39,7 @@ for dname in os.listdir(dag_path):
         for run in range(runs): 
 
             # Set the weights.                  
-            G.set_random_weights(exp_cov=cov)
+            G.set_random_weights(mu_cov=cov)
             graph_data = {"DAG" : dname[:-5], "COV" : cov, "RUN" : run}  
                                             
             # Get the reference solution. 
