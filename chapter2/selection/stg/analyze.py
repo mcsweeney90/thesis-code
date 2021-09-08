@@ -14,7 +14,6 @@ from matplotlib.patches import Patch
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -31,7 +30,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 10
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -110,28 +108,28 @@ def summarize(data, save_dest):
             print("#AT LEAST AS GOOD: {}/{}".format(alag, data.shape[0]), file=dest)
             print("%AT LEAST AS GOOD: {}".format(100 * alag/data.shape[0]), file=dest)
 
-# # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+# All data.
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # By platform.
-# for s in ngpus:
-#     sdf = df.loc[(df['s'] == s)]  
-#     loc = "{}/s{}.txt".format(summary_path, s)
-#     summarize(data=sdf, save_dest=loc)
+# By platform.
+for s in ngpus:
+    sdf = df.loc[(df['s'] == s)]  
+    loc = "{}/s{}.txt".format(summary_path, s)
+    summarize(data=sdf, save_dest=loc)
     
-# # By CCR.
-# for ccr in ccrs:
-#     sdf = df.loc[(df['CCR'] == ccr)]   
-#     loc = "{}/ccr{}.txt".format(summary_path, ccr)
-#     summarize(data=sdf, save_dest=loc)
+# By CCR.
+for ccr in ccrs:
+    sdf = df.loc[(df['CCR'] == ccr)]   
+    loc = "{}/ccr{}.txt".format(summary_path, ccr)
+    summarize(data=sdf, save_dest=loc)
 
-# # By platform and tile size.  
-# for s in ngpus:
-#     for ccr in ccrs:
-#         sdf = df.loc[(df['s'] == s) & (df['CCR'] == ccr)]   
-#         loc = "{}/s{}_ccr{}.txt".format(summary_path, s, ccr)
-#         summarize(data=sdf, save_dest=loc)
+# By platform and CCR.  
+for s in ngpus:
+    for ccr in ccrs:
+        sdf = df.loc[(df['s'] == s) & (df['CCR'] == ccr)]   
+        loc = "{}/s{}_ccr{}.txt".format(summary_path, s, ccr)
+        summarize(data=sdf, save_dest=loc)
         
 # =============================================================================
 # Plots.
@@ -142,18 +140,6 @@ format_ccr = {0.01 : "001", 0.1 : "01", 1.0 : "1", 10.0 : "10"} # TODO: won't ta
 def plot_mpd(data, plot_name, legend=True, ylabel=True):
     """
     Plot the MPD.
-
-    Parameters
-    ----------
-    data : TYPE
-        DESCRIPTION.
-    plot_name : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
-
     """
     mpd_plot_path = "{}/mpd/".format(plot_path)
     pathlib.Path(mpd_plot_path).mkdir(parents=True, exist_ok=True)
@@ -195,6 +181,7 @@ def plot_mpd(data, plot_name, legend=True, ylabel=True):
     plt.close(fig) 
     
 def plot_better(data, plot_name, legend=True, ylabel=True):
+    """Plot percentage of better instances than EFT."""
     
     # Better/equal.
     bet_plot_path = "{}/better/".format(plot_path)
@@ -220,9 +207,7 @@ def plot_better(data, plot_name, legend=True, ylabel=True):
     plt.close(fig)   
    
 # All data.
-# plot_better(data=df, plot_name="all")
 plot_mpd(data=df, plot_name="all")
-
 # By platform and CCR.
 for s, b in product(ngpus, ccrs):
     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  

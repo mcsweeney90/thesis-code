@@ -4,19 +4,13 @@
 Analysis of STG results wrt timings.
 """
 
-import pathlib, dill
+import pathlib
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import scipy.stats
-from math import sqrt
-from itertools import product
-from scipy.stats import skew, kurtosis, kstest, ks_2samp
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -33,7 +27,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 

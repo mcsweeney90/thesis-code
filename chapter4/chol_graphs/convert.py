@@ -11,14 +11,14 @@ import sys
 sys.path.append("../")
 from src import RV, StochDAG
 
-ntasks = list(range(5, 11, 5))
-for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
-    print(nt)
-    chol_load_path = '../../chapter2/chapter4/nb{}s{}/'.format(nb, s) # TODO: double check this.
+ntasks = list(range(5, 51, 5))
+for N, nb, s in product(ntasks, [128, 1024], [1, 4]):
+    print(N)
+    chol_load_path = '../../chapter2/chapter4/nb{}s{}/'.format(nb, s) 
     chol_save_path = 'nb{}s{}/'.format(nb, s)
     pathlib.Path(chol_save_path).mkdir(parents=True, exist_ok=True)
     
-    with open('{}/{}.dill'.format(chol_load_path, nt), 'rb') as file:
+    with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
         R = dill.load(file)
     
     # Convert graph to ScaDAG.
@@ -39,6 +39,6 @@ for nt, nb, s in product(ntasks, [128, 1024], [1, 4]):
     
     G = StochDAG(A)
     # Save for future use. (Commented out by default to prevent overwriting data used for thesis.)
-    # with open('{}/{}.dill'.format(chol_save_path, nt), 'wb') as handle:
+    # with open('{}/{}.dill'.format(chol_save_path, N), 'wb') as handle:
     #     dill.dump(G, handle)
             

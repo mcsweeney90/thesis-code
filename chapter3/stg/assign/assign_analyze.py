@@ -6,15 +6,14 @@ Analyze path assignment data.
 
 import pathlib
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patches
 import pandas as pd
 import numpy as np
-import matplotlib.patches as mpl_patches
 from itertools import product
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -31,7 +30,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 8
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -68,15 +66,7 @@ def summarize(data, save_dest):
             print("\n\n\n---------------------------------", file=dest)
             print("METHOD : {}".format(method), file=dest)
             print("---------------------------------", file=dest)
-            
-            if method in mc:                
-                print("\nNUMBER OF OBSERVED CRITICAL PATHS", file=dest)
-                print("----------------------------", file=dest)
-                paths = data["{} PATHS".format(method[:-2])]
-                print("MEAN: {}".format(paths.mean()), file=dest)  
-                print("MOST = {}".format(paths.max()), file=dest)
-                print("LEAST = {}".format(paths.min()), file=dest)
-            
+                        
             slrs = data[method] / data["MLB"]   
             print("\nSLR", file=dest)
             print("----------------------------", file=dest)
@@ -142,39 +132,39 @@ def summarize(data, save_dest):
                 worse = (reds.values < 0.0).sum()
                 print("%WORSE: {}".format(100 * worse/data.shape[0]), file=dest) 
 
-# # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+# All data.
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # By number of processors.
-# for q in nprocessors:
-#     sdf = df.loc[(df['q'] == q)]  
-#     loc = "{}/q{}.txt".format(summary_path, q)
-#     summarize(data=sdf, save_dest=loc)
+# By number of processors.
+for q in nprocessors:
+    sdf = df.loc[(df['q'] == q)]  
+    loc = "{}/q{}.txt".format(summary_path, q)
+    summarize(data=sdf, save_dest=loc)
 
-# # By CCR.
-# for ccr in ccrs:
-#     sdf = df.loc[(df['mu_ccr'] == ccr)]  
-#     loc = "{}/ccr{}.txt".format(summary_path, ccr)
-#     summarize(data=sdf, save_dest=loc)
+# By CCR.
+for ccr in ccrs:
+    sdf = df.loc[(df['mu_ccr'] == ccr)]  
+    loc = "{}/ccr{}.txt".format(summary_path, ccr)
+    summarize(data=sdf, save_dest=loc)
     
-# # By rtask.
-# for rtask in Rs:
-#     sdf = df.loc[(df['rtask'] == rtask)]  
-#     loc = "{}/rtask{}.txt".format(summary_path, rtask)
-#     summarize(data=sdf, save_dest=loc)
+# By rtask.
+for rtask in Rs:
+    sdf = df.loc[(df['rtask'] == rtask)]  
+    loc = "{}/rtask{}.txt".format(summary_path, rtask)
+    summarize(data=sdf, save_dest=loc)
     
-# # By rmach.
-# for rmach in Rs:
-#     sdf = df.loc[(df['rmach'] == rmach)]  
-#     loc = "{}/rmach{}.txt".format(summary_path, rmach)
-#     summarize(data=sdf, save_dest=loc)
+# By rmach.
+for rmach in Rs:
+    sdf = df.loc[(df['rmach'] == rmach)]  
+    loc = "{}/rmach{}.txt".format(summary_path, rmach)
+    summarize(data=sdf, save_dest=loc)
     
-# # By V.
-# for v in Vs:
-#     sdf = df.loc[(df['V'] == v)]  
-#     loc = "{}/V{}.txt".format(summary_path, v)
-#     summarize(data=sdf, save_dest=loc)
+# By V.
+for v in Vs:
+    sdf = df.loc[(df['V'] == v)]  
+    loc = "{}/V{}.txt".format(summary_path, v)
+    summarize(data=sdf, save_dest=loc)
     
     
 # =============================================================================
@@ -258,53 +248,53 @@ def plot_bests(data, name, ylabel=True):
 
 
 # All data.
-# plot_mpd(data=df, name="all")
-# plot_bests(data=df, name="all")
+plot_mpd(data=df, name="all")
+plot_bests(data=df, name="all")
 
 # By CCR.
-# for b in ccrs:
-#     sdf = df.loc[(df['mu_ccr'] == b)]  
-#     plot_mpd(data=sdf, name="b{}".format(clean[b]))
+for b in ccrs:
+    sdf = df.loc[(df['mu_ccr'] == b)]  
+    plot_mpd(data=sdf, name="b{}".format(clean[b]))
     
-# # By V.
-# for V in Vs:
-#     sdf = df.loc[(df['V'] == V) ]  
-#     plot_mpd(data=sdf, name="V{}".format(clean[V]))
+# By V.
+for V in Vs:
+    sdf = df.loc[(df['V'] == V) ]  
+    plot_mpd(data=sdf, name="V{}".format(clean[V]))
 
-# for V, b in product(Vs, ccrs):
-#     sdf = df.loc[(df['mu_ccr'] == b) & (df['V'] == V)] 
-#     y = True if V == 0.2 else False
-#     plot_mpd(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
+for V, b in product(Vs, ccrs):
+    sdf = df.loc[(df['mu_ccr'] == b) & (df['V'] == V)] 
+    y = True if V == 0.2 else False
+    plot_mpd(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
 
-# #By q.
-# for q in nprocessors: 
-#     plot_mpd(data=df.loc[(df['q'] == q)], name="q{}".format(q))  
+# By q.
+for q in nprocessors: 
+    plot_mpd(data=df.loc[(df['q'] == q)], name="q{}".format(q))  
 
-# # By rtask.
-# for rtask in Rs:
-#     sdf = df.loc[(df['rtask'] == rtask)]  
-#     plot_mpd(data=sdf, name="rtask{}".format(clean[rtask]))
+# By rtask.
+for rtask in Rs:
+    sdf = df.loc[(df['rtask'] == rtask)]  
+    plot_mpd(data=sdf, name="rtask{}".format(clean[rtask]))
     
-# # By rmach.
-# for rmach in Rs:
-#     sdf = df.loc[(df['rmach'] == rmach)]  
-#     plot_mpd(data=sdf, name="rmach{}".format(clean[rmach]))
+# By rmach.
+for rmach in Rs:
+    sdf = df.loc[(df['rmach'] == rmach)]  
+    plot_mpd(data=sdf, name="rmach{}".format(clean[rmach]))
     
 # By V, rtask, rmach.
-# for V, r in product(Vs, Rs):
-#     sdf = df.loc[(df['rmach'] == r) & (df['rtask'] == r) & (df['V'] == V)] 
-#     y = True if V == 0.2 else False
-#     plot_mpd(data=sdf, name="V{}_R{}".format(clean[V], clean[r]), ylabel=y)
+for V, r in product(Vs, Rs):
+    sdf = df.loc[(df['rmach'] == r) & (df['rtask'] == r) & (df['V'] == V)] 
+    y = True if V == 0.2 else False
+    plot_mpd(data=sdf, name="V{}_R{}".format(clean[V], clean[r]), ylabel=y)
 
-# bests = df.loc[:, all_c].min(axis=1) 
-# cdf = df.loc[(df['M-H'] != bests)] 
-# print(len(cdf))
-# plot_bests(data=cdf, name="all", ylabel=True)
-# for V, b in product(Vs, ccrs):
-#     sdf = cdf.loc[(cdf['mu_ccr'] == b) & (cdf['V'] == V)] 
-#     print(V, b, len(sdf))
-#     y = True if V == 0.2 else False
-#     plot_bests(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
-#     plot_mpd(data=sdf, name="V{}_b{}_wins".format(clean[V], clean[b]), ylabel=y)
+bests = df.loc[:, all_c].min(axis=1) 
+cdf = df.loc[(df['M-H'] != bests)] 
+print(len(cdf))
+plot_bests(data=cdf, name="all", ylabel=True)
+for V, b in product(Vs, ccrs):
+    sdf = cdf.loc[(cdf['mu_ccr'] == b) & (cdf['V'] == V)] 
+    print(V, b, len(sdf))
+    y = True if V == 0.2 else False
+    plot_bests(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
+    plot_mpd(data=sdf, name="V{}_b{}_wins".format(clean[V], clean[b]), ylabel=y)
 
     

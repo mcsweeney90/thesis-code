@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Get all results (CLT-based and MC/RPM) for STG set. 
+NOTE: to avoid overwriting the data 'stg.csv' that was used in thesis, have changed the name of save destination to 'new_stg.csv'. 
 Took about 11 hours on my machine.
 """
 
@@ -158,7 +159,7 @@ for dname in os.listdir(dag_path):
                         
             data.append(graph_data)  
             
-# Save results. (Commented out by default.)
-# df = pd.DataFrame(data)  
-# df.to_csv('stg.csv', encoding='utf-8', index=False)
+# Save results. 
+df = pd.DataFrame(data)  
+df.to_csv('new_stg.csv', encoding='utf-8', index=False)
     

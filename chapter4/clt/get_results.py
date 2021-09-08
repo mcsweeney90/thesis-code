@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Compare CLT-based heuristics for Cholesky graphs.
+NOTE: to avoid overwriting the data 'clt.csv' that was used in thesis, have changed the name of save destination to 'new_clt.csv'. 
 """
 
 import dill
@@ -9,18 +10,12 @@ import pandas as pd
 from itertools import product
 from timeit import default_timer as timer
 
-# TODO: the following apparently unnecessary import statement may be needed to load the DAGs - suspect due to dill saving by reference.
-import sys
-sys.path.append("../")
-from src import RV, StochDAG
-
 data = []
 ntasks = list(range(5, 51, 5))
 for N, nb, s in product(ntasks, [128, 1024], [1, 4]): 
     chol_load_path = '../chol_graphs/nb{}s{}'.format(nb, s)
     with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
-        R = dill.load(file)
-    G = StochDAG(R)
+        G = dill.load(file)
     
     graph_data = {"n" : G.size, "N" : N, "nb" : nb, "s" : s}
     
@@ -81,4 +76,4 @@ for N, nb, s in product(ntasks, [128, 1024], [1, 4]):
 
 # Save the dataframe.
 df = pd.DataFrame(data)  
-df.to_csv('clt.csv', encoding='utf-8', index=False)
+df.to_csv('new_clt.csv', encoding='utf-8', index=False)

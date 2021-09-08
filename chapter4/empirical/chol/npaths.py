@@ -2,16 +2,12 @@
 # -*- coding: utf-8 -*-
 """
 Number of distinct paths observed to be critical when generating empirical longest path distribution. 
+NOTE: to avoid overwriting the data 'npaths.csv' that was used in thesis, have changed the name of save destination to 'new_npaths.csv'. 
 """
 
 import dill
 import pandas as pd
 from itertools import product
-
-# TODO: this import statement may be needed.
-# import sys
-# sys.path.append("../../")
-# from src import StochDAG
 
 data = []
 ntiles = list(range(5, 51, 5))
@@ -34,4 +30,4 @@ for N, nb, s in product(ntiles, [128, 1024], [1, 4]):
     
 # Save the dataframe.
 df = pd.DataFrame(data)  
-df.to_csv('npaths.csv', encoding='utf-8', index=False)
+df.to_csv('new_npaths.csv', encoding='utf-8', index=False)

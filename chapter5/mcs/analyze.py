@@ -4,19 +4,14 @@
 Analyze results.
 """
 
-import pathlib, dill
+import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.stats
-from math import sqrt
-from itertools import product
-import matplotlib.patches as mpl_patches
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -33,7 +28,6 @@ plt.rcParams['lines.markersize'] = 6 # Changed from 3.
 plt.rcParams['legend.fontsize'] = 10
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -88,43 +82,6 @@ fig.tight_layout()
 plt.savefig('{}/prob'.format(plot_path), bbox_inches='tight') 
 plt.close(fig) 
 
-################################################
-# Expected values.
-################################################
-
-# means = {"SAM" : [], "UCB" : [], "SHEFT" : [], "HEFT" : []} 
-# for cov in covs:
-#     data = df.loc[(df['COV'] == cov)] 
-#     means["SAM"].append(data["MCS100 MU"].mean())
-#     means["UCB"].append(data["UCB100 MU"].mean())   
-#     means["SHEFT"].append(data["SHEFT MU"].mean()) 
-#     means["HEFT"].append(data["HEFT MU"].mean())         
-    
-# x = np.arange(len(covs))
-# width = 0.2
-# fig, ax = plt.subplots(dpi=400)
-# rects1 = ax.bar(x - 1.5*width, means["SAM"], width, label='SAM', color='#E24A33')
-# rects2 = ax.bar(x - 0.5*width, means["UCB"], width, label='UCB', color='#348ABD')
-# rects3 = ax.bar(x + 0.5*width, means["SHEFT"], width, label='SHEFT', color='#8EBA42')
-# rects4 = ax.bar(x + 1.5*width, means["HEFT"], width, label='HEFT', color='#8EBA42')
-
-# plt.minorticks_on()
-# plt.grid(True, linestyle='-', axis='y', which='major')
-# plt.grid(True, linestyle=':', axis='y', which='minor')
-# plt.grid(False, axis='x')  
-
-# ax.set_ylabel("MEAN $\mu$", labelpad=5)
-# ax.set_xticks(x)
-# ax.set_xticklabels(covs)
-# ax.set_xlabel("MEAN COEFFICIENT OF VARIATION ($\mu_v$)", labelpad=5)
-
-# ax.tick_params(axis='x', which='minor', bottom=False) 
-
-# ax.legend(handlelength=3, handletextpad=0.4, ncol=3, loc='best', fancybox=True, facecolor='white')
-# fig.tight_layout()    
-# plt.savefig('{}/mu'.format(plot_path), bbox_inches='tight') 
-# plt.close(fig) 
-
 # =============================================================================
 # Scatter plots.
 # =============================================================================
@@ -152,8 +109,8 @@ def plot_reductions(data, name, ylabel=True, colors=False):
     plt.savefig('{}/red_mu_stg_{}'.format(plot_path, name), bbox_inches='tight') 
     plt.close(fig) 
 
-# plot_reductions(data=df, name="all", ylabel=False)
-# for cov in covs:
-#     data = df.loc[(df['COV'] == cov)] 
-#     y = True if cov in [0.05, 0.15, 0.25, 0.5] else False
-#     plot_reductions(data, name="cov{}".format(clean[cov]), ylabel=y)
+plot_reductions(data=df, name="all", ylabel=False)
+for cov in covs:
+    data = df.loc[(df['COV'] == cov)] 
+    y = True if cov in [0.05, 0.15, 0.25, 0.5] else False
+    plot_reductions(data, name="cov{}".format(clean[cov]), ylabel=y)

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Task prioritization for STG set.
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'. 
 """
 
 import dill, os
@@ -71,8 +72,8 @@ for dname in os.listdir(dag_path):
                     graph_data["{}-O".format(avg)] = mkspan
                 
                 data.append(graph_data)        
-# Save data. (Commented out by default to avoid overwriting data used in thesis.)
-# df = pd.DataFrame(data)  
-# df.to_csv('results{}.csv'.format(size), encoding='utf-8', index=False)
+# Save data.
+df = pd.DataFrame(data)  
+df.to_csv('new_results{}.csv'.format(size), encoding='utf-8', index=False)
 
                 

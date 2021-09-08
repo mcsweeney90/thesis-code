@@ -7,13 +7,11 @@ Analysis of empirical (i.e., Monte Carlo) longest path distributions.
 import pathlib, dill
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats
-from scipy.stats import skew, kurtosis, kstest, ks_2samp
+from scipy.stats import skew, kurtosis, ks_2samp
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -30,7 +28,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -111,43 +108,43 @@ for N in ntiles:
 
 colors = {"normal":'#E24A33', "gamma":'#348ABD', "uniform":'#8EBA42'}
 
-# # Histrograms.
-# fig, axs = plt.subplots(nrows=len(ntiles), ncols=len(dists), figsize=(9, 9), subplot_kw={'xticks': [], 'yticks': []}, dpi=400)
-# for i, nt in enumerate(ntiles):
-#     for j, dist in enumerate(dists):
-#         # Get the data.
-#         with open('data/{}/{}.dill'.format(dist, nt), 'rb') as file:
-#             D = dill.load(file)
-#         # Add subplot.
-#         axs[i, j].hist(D, color=colors[dist], density=True, bins='auto') 
-#         axs[i, j].axvline(np.mean(D), color='k', linestyle='solid', linewidth=1)
-#         if j == 0:
-#             axs[i, j].set_ylabel("N = {}".format(nt), fontsize=6)
-#         if nt == 50:
-#             axs[i, j].set_xlabel("{}".format(upper_dists[dist]), fontsize=10)
-# plt.subplots_adjust(wspace=0) 
-# plt.savefig('{}/nb1024s1histograms'.format(plot_path), bbox_inches='tight') 
-# plt.close(fig) 
+# Histrograms.
+fig, axs = plt.subplots(nrows=len(ntiles), ncols=len(dists), figsize=(9, 9), subplot_kw={'xticks': [], 'yticks': []}, dpi=400)
+for i, nt in enumerate(ntiles):
+    for j, dist in enumerate(dists):
+        # Get the data.
+        with open('data/{}/{}.dill'.format(dist, nt), 'rb') as file:
+            D = dill.load(file)
+        # Add subplot.
+        axs[i, j].hist(D, color=colors[dist], density=True, bins='auto') 
+        axs[i, j].axvline(np.mean(D), color='k', linestyle='solid', linewidth=1)
+        if j == 0:
+            axs[i, j].set_ylabel("N = {}".format(nt), fontsize=6)
+        if nt == 50:
+            axs[i, j].set_xlabel("{}".format(upper_dists[dist]), fontsize=10)
+plt.subplots_adjust(wspace=0) 
+plt.savefig('{}/nb1024s1histograms'.format(plot_path), bbox_inches='tight') 
+plt.close(fig) 
 
 # Progression of MC solutions.
-# samps = [10, 100, 1000, 10000, 100000]
-# for dist in dists:
-#     fig, axs = plt.subplots(nrows=len(ntiles), ncols=len(samps), figsize=(6, 9), subplot_kw={'xticks': [], 'yticks': []}, dpi=400)
-#     for i, nt in enumerate(ntiles):
-#         with open('data/{}/{}.dill'.format(dist, nt), 'rb') as file:
-#             D = dill.load(file)
-#         for j, samp in enumerate(samps):
-#             # Get the data.
-#             R = D[:samp] #np.random.choice(D, samp)
-#             # Add subplot.
-#             axs[i, j].hist(R, color=colors[dist], density=True, bins='auto') 
-#             # axs[i, j].axvline(np.mean(D), color='k', linestyle='solid', linewidth=1)
-#             if j == 0:
-#                 axs[i, j].set_ylabel("N = {}".format(nt), fontsize=6)
-#             if nt == 50:
-#                 axs[i, j].set_xlabel("{}".format(samp), fontsize=10)
-#     plt.subplots_adjust(wspace=0) 
-#     plt.savefig('{}/{}_prog'.format(plot_path, dist), bbox_inches='tight') 
-#     plt.close(fig) 
+samps = [10, 100, 1000, 10000, 100000]
+for dist in dists:
+    fig, axs = plt.subplots(nrows=len(ntiles), ncols=len(samps), figsize=(6, 9), subplot_kw={'xticks': [], 'yticks': []}, dpi=400)
+    for i, nt in enumerate(ntiles):
+        with open('data/{}/{}.dill'.format(dist, nt), 'rb') as file:
+            D = dill.load(file)
+        for j, samp in enumerate(samps):
+            # Get the data.
+            R = D[:samp] #np.random.choice(D, samp)
+            # Add subplot.
+            axs[i, j].hist(R, color=colors[dist], density=True, bins='auto') 
+            # axs[i, j].axvline(np.mean(D), color='k', linestyle='solid', linewidth=1)
+            if j == 0:
+                axs[i, j].set_ylabel("N = {}".format(nt), fontsize=6)
+            if nt == 50:
+                axs[i, j].set_xlabel("{}".format(samp), fontsize=10)
+    plt.subplots_adjust(wspace=0) 
+    plt.savefig('{}/{}_prog'.format(plot_path, dist), bbox_inches='tight') 
+    plt.close(fig) 
 
 

@@ -4,20 +4,14 @@
 Analysis of STG results wrt RPM heuristics.
 """
 
-import pathlib, dill
+import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.stats
-import matplotlib.patches as mpl_patches
-from math import sqrt
-from itertools import product
-from scipy.stats import skew, kurtosis, kstest, ks_2samp
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -34,7 +28,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -74,10 +67,10 @@ def summarize(data, name):
         for method in methods[3:]:
             print("{}: ({}, {})".format(method, data["{} KS".format(method)].mean(), data["{} KS".format(method)].max()), file=dest)
         
-# summarize(df, name="all")
-# for cov in covs:
-#     sdf = df.loc[(df['COV'] == cov)] 
-#     summarize(sdf, name="cov{}".format(cov))
+summarize(df, name="all")
+for cov in covs:
+    sdf = df.loc[(df['COV'] == cov)] 
+    summarize(sdf, name="cov{}".format(cov))
 
 # =============================================================================
 # Plots.
@@ -108,9 +101,9 @@ def mean_hist(data, name, col, ylabel=None):
     plt.savefig('{}/stg_rpm_{}_{}'.format(plot_path, col, name), bbox_inches='tight') 
     plt.close(fig)      
 
-# mean_hist(data=df, name="all", col="KS", ylabel="MEAN KS STATISTIC")
-# for cov, name in zip(covs, str_covs):
-#     sdf = df.loc[(df['COV'] == cov)] 
-#     y = "MEAN KS STATISTIC" if cov in [0.01, 0.1] else None
-#     mean_hist(sdf, name="cov{}".format(name), col="KS", ylabel=y)
-# mean_hist(data=df, name="all", col="TIME", ylabel="MEAN TIME (SECONDS)")
+mean_hist(data=df, name="all", col="KS", ylabel="MEAN KS STATISTIC")
+for cov, name in zip(covs, str_covs):
+    sdf = df.loc[(df['COV'] == cov)] 
+    y = "MEAN KS STATISTIC" if cov in [0.01, 0.1] else None
+    mean_hist(sdf, name="cov{}".format(name), col="KS", ylabel=y)
+mean_hist(data=df, name="all", col="TIME", ylabel="MEAN TIME (SECONDS)")

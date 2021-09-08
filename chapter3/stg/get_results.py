@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Get results for STG set. 
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'. 
 """
 
 import dill, os, csv
 import numpy as np
 from itertools import product
 from timeit import default_timer as timer
+
 import sys
 sys.path.append('../') 
 from src import DAG, priority_scheduling, cpop
@@ -29,7 +31,7 @@ avgs = ["M", "MD", "B", "SB", "W", "SW", "HM", "SHM", "GM", "SGM", "R", "D", "NC
 # Generate results.
 # =============================================================================
 
-with open('new_results.csv', 'w', encoding='UTF8') as f: # Or whatever name for the file...
+with open('new_results.csv', 'w', encoding='UTF8') as f:
     
     writer = csv.writer(f)
     header = ["DAG", "q", "rtask", "rmach", "mu_ccr", "V", "run", "CCR", "MST", "MLB", "RND-H", "HEFT PRIO TIME", "RND-C"]

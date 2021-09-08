@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Lookahead for STG set.
+Processor selection rules for STG set.
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'. 
 """
 
 import dill, os
@@ -11,6 +12,8 @@ from timeit import default_timer as timer
 import sys
 sys.path.append('../../') 
 from src import DAG, priority_scheduling
+
+####################################################################################################
 
 size = 1000
 dag_path = '../../../graphs/STG/{}'.format(size)
@@ -25,8 +28,7 @@ runs = 10
 # =============================================================================
 
 data = [] 
-for dname in os.listdir(dag_path):     
-    # print(dname)
+for dname in os.listdir(dag_path):   
     # Load the DAG topology.
     with open('{}/{}'.format(dag_path, dname), 'rb') as file:
         T = dill.load(file)
@@ -97,6 +99,6 @@ for dname in os.listdir(dag_path):
                 graph_data["HAL TIME"] = hal_time/eft_time 
                 
                 data.append(graph_data)        
-# Save data. (Commented out by default to avoid overwriting data used in thesis.) 
-# df = pd.DataFrame(data)  
-# df.to_csv('results{}.csv'.format(size), encoding='utf-8', index=False)
+# Save data. 
+df = pd.DataFrame(data)  
+df.to_csv('new_results{}.csv'.format(size), encoding='utf-8', index=False)

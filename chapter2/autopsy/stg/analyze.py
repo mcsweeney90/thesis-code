@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analysis of autopsy method for STG graphs.
+Generate summaries and plots of autopsy method data for STG graphs.
 """
 
 import pathlib
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patches
 import pandas as pd
 import numpy as np
 from itertools import product
-import matplotlib.patches as mpl_patches
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -31,11 +30,10 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
-size = 100
+size = 1000
 df = pd.read_csv('results{}.csv'.format(size))
 
 summary_path = "summaries/n{}".format(size)
@@ -85,26 +83,26 @@ def summarize(data, save_dest):
         print("WORST = {} %".format(data["AUT PTI"].max()), file=dest) 
 
 # # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # # By platform.
-# for s in ngpus:
-#     sdf = df.loc[(df['s'] == s)]  
-#     loc = "{}/s{}.txt".format(summary_path, s)
-#     summarize(data=sdf, save_dest=loc)
+# By platform.
+for s in ngpus:
+    sdf = df.loc[(df['s'] == s)]  
+    loc = "{}/s{}.txt".format(summary_path, s)
+    summarize(data=sdf, save_dest=loc)
     
-# # # By CCR.
-# for b in ccrs:
-#     sdf = df.loc[(df['CCR'] == b)]   
-#     loc = "{}/b{}.txt".format(summary_path, b)
-#     summarize(data=sdf, save_dest=loc)
+# By CCR.
+for b in ccrs:
+    sdf = df.loc[(df['CCR'] == b)]   
+    loc = "{}/b{}.txt".format(summary_path, b)
+    summarize(data=sdf, save_dest=loc)
 
-# # # By platform and tile size.  
-# for s, b in product(ngpus, ccrs):
-#     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]   
-#     loc = "{}/s{}_b{}.txt".format(summary_path, s, b)
-#     summarize(data=sdf, save_dest=loc)
+# By platform and CCR.  
+for s, b in product(ngpus, ccrs):
+    sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]   
+    loc = "{}/s{}_b{}.txt".format(summary_path, s, b)
+    summarize(data=sdf, save_dest=loc)
         
 # =============================================================================
 # Plots.
@@ -135,11 +133,12 @@ def plot_reductions(data, name, ylabel=True, dotcolor='#988ED5'):
     plt.savefig('{}/aut_stg_{}'.format(plot_path, name), bbox_inches='tight') 
     plt.close(fig)     
 
-# for s, b in product(ngpus, ccrs):
-#     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
-#     y = True if s == 1 else False
-#     col = '#988ED5' if s == 1 else '#8EBA42'
-#     plot_reductions(data=sdf, name="s{}_b{}".format(s, format_ccr[b]), ylabel=y, dotcolor=col)
+# Plot makespan reduction by number of GPUs and CCR.
+for s, b in product(ngpus, ccrs):
+    sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
+    y = True if s == 1 else False
+    col = '#988ED5' if s == 1 else '#8EBA42'
+    plot_reductions(data=sdf, name="s{}_b{}".format(s, format_ccr[b]), ylabel=y, dotcolor=col)
     
 
 

@@ -2,16 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 Time CLT and MC heuristics for Cholesky graphs.
+NOTE: to avoid overwriting the data 'timing.csv' that was used in thesis, have changed the name of save destination to 'new_timing.csv'. 
 """
 
 import dill
 import pandas as pd
 from itertools import product
 from timeit import default_timer as timer
-
-# TODO: the following apparently unnecessary import statement may be needed to load the DAGs - suspect due to dill saving by reference.
-import sys
-sys.path.append("../")
 
 runs = 10
 data = []
@@ -68,5 +65,5 @@ for N, nb, s in product(ntasks, [128, 1024], [1, 4]):
         
 # Save the dataframe.
 df = pd.DataFrame(data)  
-df.to_csv('timing.csv', encoding='utf-8', index=False)     
+df.to_csv('new_timing.csv', encoding='utf-8', index=False)     
 

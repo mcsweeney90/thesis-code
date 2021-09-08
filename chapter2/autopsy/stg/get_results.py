@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Autopsy method for STG set.
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'.  
 """
 
 import dill, os
@@ -82,6 +83,6 @@ for dname in os.listdir(dag_path):
                 
                 data.append(graph_data)        
 
-# Save the dataframe. Commented out by default.
-# df = pd.DataFrame(data)  
-# df.to_csv('results{}.csv'.format(size), encoding='utf-8', index=False)
+# Save the dataframe. 
+df = pd.DataFrame(data)  
+df.to_csv('new_results{}.csv'.format(size), encoding='utf-8', index=False)

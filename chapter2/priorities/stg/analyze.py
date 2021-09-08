@@ -6,16 +6,14 @@ Summaries and plots for the STG data.
 
 import pathlib
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patches
 import pandas as pd
 import numpy as np
 from itertools import product
-import matplotlib.patches as mpl_patches
-from matplotlib.patches import Patch
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -31,9 +29,7 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 10
 plt.rcParams['figure.titlesize'] = 12
-#plt.rcParams["figure.figsize"] = (9.6,4)
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -119,28 +115,28 @@ def summarize(data, save_dest):
             print("#AT LEAST AS GOOD: {}/{}".format(alag, data.shape[0]), file=dest)
             print("%AT LEAST AS GOOD: {}".format(100 * alag/data.shape[0]), file=dest)
 
-# # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+# All data.
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # By platform.
-# for s in ngpus:
-#     sdf = df.loc[(df['s'] == s)]  
-#     loc = "{}/s{}.txt".format(summary_path, s)
-#     summarize(data=sdf, save_dest=loc)
+# By platform.
+for s in ngpus:
+    sdf = df.loc[(df['s'] == s)]  
+    loc = "{}/s{}.txt".format(summary_path, s)
+    summarize(data=sdf, save_dest=loc)
     
-# # By CCR.
-# for ccr in ccrs:
-#     sdf = df.loc[(df['CCR'] == ccr)]   
-#     loc = "{}/ccr{}.txt".format(summary_path, ccr)
-#     summarize(data=sdf, save_dest=loc)
+# By CCR.
+for ccr in ccrs:
+    sdf = df.loc[(df['CCR'] == ccr)]   
+    loc = "{}/ccr{}.txt".format(summary_path, ccr)
+    summarize(data=sdf, save_dest=loc)
 
-# By platform and tile size.  
-# for s in ngpus:
-#     for ccr in ccrs:
-#         sdf = df.loc[(df['s'] == s) & (df['CCR'] == ccr)]   
-#         loc = "{}/s{}_b{}.txt".format(summary_path, s, ccr)
-#         summarize(data=sdf, save_dest=loc)
+# By platform and CCR.  
+for s in ngpus:
+    for ccr in ccrs:
+        sdf = df.loc[(df['s'] == s) & (df['CCR'] == ccr)]   
+        loc = "{}/s{}_b{}.txt".format(summary_path, s, ccr)
+        summarize(data=sdf, save_dest=loc)
         
 # =============================================================================
 # Plots.
@@ -174,7 +170,6 @@ def plot_mpd(data, plot_name, legend=True, ylabel=True):
     Returns
     -------
     None.
-
     """
     mpd_plot_path = "{}/mpd/".format(plot_path)
     pathlib.Path(mpd_plot_path).mkdir(parents=True, exist_ok=True)
@@ -257,29 +252,29 @@ def plot_superior(data, plot_name, legend=True, ylabel=True):
     plt.savefig('{}/prio_stg_sup_{}'.format(sup_plot_path, plot_name), bbox_inches='tight') 
     plt.close(fig)     
 
-# # All data.
+# All data.
 plot_mpd(data=df, plot_name="all")
-# plot_superior(data=df, plot_name="all")
+plot_superior(data=df, plot_name="all")
 
-# # By platform.
-# for s in ngpus:
-#     sdf = df.loc[(df['s'] == s)]  
-#     leg = True if s == 1 else False
-#     plot_mpd(data=sdf, plot_name="s{}".format(s), legend=leg)
-    # plot_superior(data=sdf, plot_name="s{}".format(s), legend=leg)
+# By platform.
+for s in ngpus:
+    sdf = df.loc[(df['s'] == s)]  
+    leg = True if s == 1 else False
+    plot_mpd(data=sdf, plot_name="s{}".format(s), legend=leg)
+    plot_superior(data=sdf, plot_name="s{}".format(s), legend=leg)
         
-# # By CCR.
-# for b in ccrs:
-#     sdf = df.loc[(df['CCR'] == b)]   
-#     leg = True if b == 0.01 else False
-#     # plot_superior(data=sdf, plot_name="b{}".format(format_ccr[b]), legend=leg)
-#     plot_mpd(data=sdf, plot_name="b{}".format(format_ccr[b]), legend=leg)
+# By CCR.
+for b in ccrs:
+    sdf = df.loc[(df['CCR'] == b)]   
+    leg = True if b == 0.01 else False
+    plot_superior(data=sdf, plot_name="b{}".format(format_ccr[b]), legend=leg)
+    plot_mpd(data=sdf, plot_name="b{}".format(format_ccr[b]), legend=leg)
 
-# # By platform and tile size.  
-# for s, b in product(ngpus, ccrs):
-#     sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
-#     leg = True if (b == 0.01 and s == 1) else False
-#     y = True if s == 1 else False
-#     plot_mpd(data=sdf, plot_name="s{}_b{}".format(s, format_ccr[b]), legend=leg, ylabel=y) 
-    # plot_superior(data=sdf, plot_name="s{}_b{}".format(s, format_ccr[b]), legend=leg, ylabel=y) 
+# By platform and tile size.  
+for s, b in product(ngpus, ccrs):
+    sdf = df.loc[(df['s'] == s) & (df['CCR'] == b)]  
+    leg = True if (b == 0.01 and s == 1) else False
+    y = True if s == 1 else False
+    plot_mpd(data=sdf, plot_name="s{}_b{}".format(s, format_ccr[b]), legend=leg, ylabel=y) 
+    plot_superior(data=sdf, plot_name="s{}_b{}".format(s, format_ccr[b]), legend=leg, ylabel=y) 
 

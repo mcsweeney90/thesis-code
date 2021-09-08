@@ -6,15 +6,14 @@ Analyze path assignment data.
 
 import pathlib
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patches
 import pandas as pd
 import numpy as np
-import matplotlib.patches as mpl_patches
 from itertools import product
 
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -31,7 +30,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 8
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
 ####################################################################################################
 
@@ -68,15 +66,7 @@ def summarize(data, save_dest):
             print("\n\n\n---------------------------------", file=dest)
             print("METHOD : {}".format(method), file=dest)
             print("---------------------------------", file=dest)
-            
-            if method in mc:                
-                print("\nNUMBER OF OBSERVED CRITICAL PATHS", file=dest)
-                print("----------------------------", file=dest)
-                paths = data["{} PATHS".format(method[:-2])]
-                print("MEAN: {}".format(paths.mean()), file=dest)  
-                print("MOST = {}".format(paths.max()), file=dest)
-                print("LEAST = {}".format(paths.min()), file=dest)
-            
+                        
             slrs = data[method] / data["MLB"]   
             print("\nSLR", file=dest)
             print("----------------------------", file=dest)
@@ -143,31 +133,31 @@ def summarize(data, save_dest):
                 print("%WORSE: {}".format(100 * worse/data.shape[0]), file=dest) 
 
 # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # By CCR.
-# for b in ccrs:
-#     sdf = df.loc[(df['CCR'] == b)]  
-#     loc = "{}/b{}.txt".format(summary_path, b)
-#     summarize(data=sdf, save_dest=loc)
+# By CCR.
+for b in ccrs:
+    sdf = df.loc[(df['CCR'] == b)]  
+    loc = "{}/b{}.txt".format(summary_path, b)
+    summarize(data=sdf, save_dest=loc)
     
-# # By V.
-# for V in Vs:
-#     sdf = df.loc[(df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ]  
-#     loc = "{}/V{}.txt".format(summary_path, V)
-#     summarize(data=sdf, save_dest=loc)
+# By V.
+for V in Vs:
+    sdf = df.loc[(df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ]  
+    loc = "{}/V{}.txt".format(summary_path, V)
+    summarize(data=sdf, save_dest=loc)
 
-# for V, b in product(Vs, ccrs):
-#     sdf = df.loc[(df['CCR'] == b) & (df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ] 
-#     loc = "{}/V{}_b{}.txt".format(summary_path, V, b)
-#     summarize(data=sdf, save_dest=loc)    
+for V, b in product(Vs, ccrs):
+    sdf = df.loc[(df['CCR'] == b) & (df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ] 
+    loc = "{}/V{}_b{}.txt".format(summary_path, V, b)
+    summarize(data=sdf, save_dest=loc)    
 
-# # By number of tiles.
-# for N in ntiles:
-#     sdf = df.loc[(df['nt'] == N)]  
-#     loc = "{}/N{}.txt".format(summary_path, N)
-#     summarize(data=sdf, save_dest=loc)
+# By number of tiles.
+for N in ntiles:
+    sdf = df.loc[(df['N'] == N)]  
+    loc = "{}/N{}.txt".format(summary_path, N)
+    summarize(data=sdf, save_dest=loc)
     
 # =============================================================================
 # Plots.
@@ -216,25 +206,25 @@ def plot_mpd(data, name, ylabel=True):
     plt.close(fig)      
 
 # All data.
-# plot_mpd(data=df, name="all")
+plot_mpd(data=df, name="all")
 
-# # By CCR.
-# for b in ccrs:
-#     sdf = df.loc[(df['CCR'] == b)]  
-#     plot_mpd(data=sdf, name="b{}".format(clean[b]))
+# By CCR.
+for b in ccrs:
+    sdf = df.loc[(df['CCR'] == b)]  
+    plot_mpd(data=sdf, name="b{}".format(clean[b]))
     
-# # By V.
-# for V in Vs:
-#     sdf = df.loc[(df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ]  
-#     plot_mpd(data=sdf, name="V{}".format(clean[V]))
+# By V.
+for V in Vs:
+    sdf = df.loc[(df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ]  
+    plot_mpd(data=sdf, name="V{}".format(clean[V]))
 
-# for V, b in product(Vs, ccrs):
-#     sdf = df.loc[(df['CCR'] == b) & (df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ] 
-#     y = True if V == 0.2 else False
-#     plot_mpd(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
+for V, b in product(Vs, ccrs):
+    sdf = df.loc[(df['CCR'] == b) & (df['vproc'] == V) & (df['vrel'] == V) & (df['vband'] == V) ] 
+    y = True if V == 0.2 else False
+    plot_mpd(data=sdf, name="V{}_b{}".format(clean[V], clean[b]), ylabel=y)
 
 # By number of tiles.
-# for N in ntiles:
-#     sdf = df.loc[(df['nt'] == N)]  
-#     plot_mpd(data=sdf, name="N{}".format(N))
+for N in ntiles:
+    sdf = df.loc[(df['N'] == N)]  
+    plot_mpd(data=sdf, name="N{}".format(N))
 

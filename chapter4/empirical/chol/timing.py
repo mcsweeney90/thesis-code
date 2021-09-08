@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Time how long it takes to generate emprirical longest path distributions using MC method. 
+NOTE: to avoid overwriting the data 'timing.csv' that was used in thesis, have changed the name of save destination to 'new_timing.csv'. 
 """
 
 import dill
@@ -9,19 +10,13 @@ import pandas as pd
 from itertools import product
 from timeit import default_timer as timer
 
-import sys
-sys.path.append("../../")
-from src import StochDAG
-
 runs = 10
-
 data = []
 ntasks = list(range(5, 51, 5))
 for N, nb, s in product(ntasks, [128, 1024], [1, 4]): 
     chol_load_path = '../../chol_graphs/nb{}s{}'.format(nb, s)
     with open('{}/{}.dill'.format(chol_load_path, N), 'rb') as file:
-        R = dill.load(file)
-    G = StochDAG(R)
+        G = dill.load(file)
         
     for dist in ["normal", "gamma", "uniform"]:
         graph_data = {"n" : G.size, "N" : N, "nb" : nb, "s" : s, "DIST" : dist}
@@ -36,5 +31,5 @@ for N, nb, s in product(ntasks, [128, 1024], [1, 4]):
         
 # Save the dataframe.
 df = pd.DataFrame(data)  
-df.to_csv('timing.csv', encoding='utf-8', index=False)     
+df.to_csv('new_timing.csv', encoding='utf-8', index=False)     
 

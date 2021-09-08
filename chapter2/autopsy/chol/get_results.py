@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Autopsy method for Cholesky graphs.
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'.    
 """
 
 import dill
@@ -14,7 +15,7 @@ from src import priority_scheduling
 
 ####################################################################################################
 
-dag_path = '../chol_graphs/'
+dag_path = '../../chol_graphs/'
 ntiles = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 nbs = [128, 1024]
 r = 32
@@ -75,7 +76,7 @@ for nb in nbs:
             graph_data["AUT PTI"] = 100*(aut_time/eft_time) # Percentage time increase.
         
             data.append(graph_data)
-                    
-# Save the dataframe. Commented out by default.
-# df = pd.DataFrame(data)  
-# df.to_csv('results.csv', encoding='utf-8', index=False)
+
+# Save the data. 
+df = pd.DataFrame(data)  
+df.to_csv('new_results.csv', encoding='utf-8', index=False) 

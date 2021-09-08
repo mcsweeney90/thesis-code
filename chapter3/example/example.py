@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Example graph used throughout.
+Example graph used throughout chapter.
+NOTE: most code commented out by default.
 """
 
 import dill

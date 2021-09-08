@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 Comparison for Cholesky DAGs.
-Notes: 
+NOTE: to avoid overwriting the data 'results.csv' that was used in thesis, have changed the name of save destination to 'new_results.csv'. 
+ALSO: 
     1. This is very slow, especially for the larger graphs, so would not recommend running again.
-    2. Saves full results and a "streamlined" version with just q = 20 and same V value for all coefficients of variation.
+    2. Saves full results and a "streamlined" version with just q = 20 and same V value for all coefficient of variation parameters.
 """
 
 import dill
@@ -12,6 +13,7 @@ import pandas as pd
 import numpy as np
 from itertools import product
 from timeit import default_timer as timer
+
 import sys
 sys.path.append('../') 
 from src import DAG, priority_scheduling, cpop
@@ -171,9 +173,9 @@ for N in ntiles:
             data.append(graph_data)
                     
 # # Save the dataframe.
-# df = pd.DataFrame(data)  
-# df.to_csv('results_full.csv', encoding='utf-8', index=False)
+df = pd.DataFrame(data)  
+df.to_csv('new_results_full.csv', encoding='utf-8', index=False)
 # Save streamlined version. 
-# rdf = df.loc[(df['q'] == 20) & ((df['vproc'] == 0.2) & (df['vrel'] == 0.2) & (df['vband'] == 0.2) | (df['vproc'] == 1.0) & (df['vrel'] == 1.0) & (df['vband'] == 1.0))]
-# rdf.to_csv('results.csv', encoding='utf-8', index=False)
+rdf = df.loc[(df['q'] == 20) & ((df['vproc'] == 0.2) & (df['vrel'] == 0.2) & (df['vband'] == 0.2) | (df['vproc'] == 1.0) & (df['vrel'] == 1.0) & (df['vband'] == 1.0))]
+rdf.to_csv('new_results.csv', encoding='utf-8', index=False)
 

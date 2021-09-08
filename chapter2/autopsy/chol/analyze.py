@@ -12,7 +12,6 @@ from itertools import product
 ####################################################################################################
 
 # Set some parameters for plots.
-# See here: http://www.futurile.net/2016/02/27/matplotlib-beautiful-plots-with-style/
 plt.style.use('ggplot')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Ubuntu'
@@ -29,7 +28,6 @@ plt.rcParams['lines.markersize'] = 3
 plt.rcParams['legend.fontsize'] = 12
 plt.rcParams['figure.titlesize'] = 12
 plt.ioff() # Don't show plots.
-# print(plt.rcParams['axes.prop_cycle'].by_key()['color']) # Sometimes useful if colors needed. 
 
 ####################################################################################################
 
@@ -69,27 +67,27 @@ def summarize(data, save_dest):
         print("BEST = {} %".format(data["AUT PTI"].min()), file=dest)
         print("WORST = {} %".format(data["AUT PTI"].max()), file=dest) 
 
-# # All data.
-# loc = "{}/all.txt".format(summary_path)
-# summarize(data=df, save_dest=loc)
+# All data.
+loc = "{}/all.txt".format(summary_path)
+summarize(data=df, save_dest=loc)
 
-# # By platform.
-# for s in ngpus:
-#     sdf = df.loc[(df['s'] == s)]  
-#     loc = "{}/s{}.txt".format(summary_path, s)
-#     summarize(data=sdf, save_dest=loc)
+# By platform.
+for s in ngpus:
+    sdf = df.loc[(df['s'] == s)]  
+    loc = "{}/s{}.txt".format(summary_path, s)
+    summarize(data=sdf, save_dest=loc)
     
-# # By tile size.
-# for nb in nbs:
-#     sdf = df.loc[(df['NB'] == nb)]   
-#     loc = "{}/nb{}.txt".format(summary_path, nb)
-#     summarize(data=sdf, save_dest=loc)
+# By tile size.
+for nb in nbs:
+    sdf = df.loc[(df['NB'] == nb)]   
+    loc = "{}/nb{}.txt".format(summary_path, nb)
+    summarize(data=sdf, save_dest=loc)
 
-# # By platform and tile size.  
-# for s, nb in product(ngpus, nbs):
-#     sdf = df.loc[(df['s'] == s) & (df['NB'] == nb)]   
-#     loc = "{}/s{}_nb{}.txt".format(summary_path, s, nb)
-#     summarize(data=sdf, save_dest=loc)
+# By platform and tile size.  
+for s, nb in product(ngpus, nbs):
+    sdf = df.loc[(df['s'] == s) & (df['NB'] == nb)]   
+    loc = "{}/s{}_nb{}.txt".format(summary_path, s, nb)
+    summarize(data=sdf, save_dest=loc)
 
 # =============================================================================
 # Plots.

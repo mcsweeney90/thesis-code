@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Generate the results presented in Section 5.3 (Accelerating MCS).
+NOTE: to avoid overwriting the data 'mcs.csv' that was used in thesis, have changed the name of save destination to 'new_mcs.csv'. 
 """
 
 import os, dill, random, scipy.stats
@@ -17,7 +18,7 @@ def _broadcast_concatenate(x, y, axis):
     """
     Broadcast then concatenate arrays, leaving concatenation axis last.
     Taken from Scipy implementation of mannwhitneyu.
-    Helper functions for below.
+    Helper function for below.
     """
     x = np.moveaxis(x, axis, -1)
     y = np.moveaxis(y, axis, -1)
@@ -126,6 +127,6 @@ for dname in os.listdir(stg_dag_path):
             
             data.append(graph_data)  
 
-# Save data. Commented out by default.
-# df = pd.DataFrame(data)  
-# df.to_csv('mcs.csv', encoding='utf-8', index=False)      
+# Save data. 
+df = pd.DataFrame(data)  
+df.to_csv('new_mcs.csv', encoding='utf-8', index=False)      

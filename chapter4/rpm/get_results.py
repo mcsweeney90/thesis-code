@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Compare RPM variants for Cholesky DAGs.
+NOTE: to avoid overwriting the data 'rpm.csv' that was used in thesis, have changed the name of save destination to 'new_rpm.csv'. 
 """
 
 import dill
@@ -10,9 +11,6 @@ import numpy as np
 from itertools import product
 from timeit import default_timer as timer
 from scipy.stats import ks_2samp
-# Import statement may be necessary (because objects saved by reference). 
-import sys
-sys.path.append("../")
 
 # =============================================================================
 # Get results.
@@ -93,6 +91,6 @@ for N, nb, s in product(ntiles, [128, 1024], [1, 4]):
     # Save the data.
     data.append(graph_data)
 
-# # Save the dataframe. (Commented out by default.)
-# df = pd.DataFrame(data)  
-# df.to_csv('rpm.csv', encoding='utf-8', index=False)
+# # Save the dataframe.
+df = pd.DataFrame(data)  
+df.to_csv('new_rpm.csv', encoding='utf-8', index=False)
